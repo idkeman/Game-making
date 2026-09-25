@@ -85,16 +85,24 @@ addEventListener("keydown",e=>{
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 
-canvas.addEventListener("mousemove",e=>{
+function updateAim(e){
   const rect=canvas.getBoundingClientRect();
   mouseX=(e.clientX-rect.left)*(W/rect.width);
   mouseY=(e.clientY-rect.top)*(H/rect.height);
+}
+canvas.addEventListener("pointermove",updateAim);
+canvas.addEventListener("pointerdown",e=>{
+  if(e.button===0){
+    mouseDown=true;
+    canvas.setPointerCapture?.(e.pointerId);
+    updateAim(e);
+    fire();
+  }
 });
-canvas.addEventListener("mousedown",e=>{
-  if(e.button===0){mouseDown=true;fire();}
-});
-addEventListener("mouseup",e=>{if(e.button===0)mouseDown=false;});
-canvas.addEventListener("mouseleave",()=>{mouseDown=false;});
+canvas.addEventListener("pointerup",e=>{if(e.button===0)mouseDown=false;});
+canvas.addEventListener("pointercancel",()=>{mouseDown=false;});
+canvas.addEventListener("pointerleave",()=>{mouseDown=false;});
+addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 
 $("start-btn").onclick=start;
 $("resume-btn").onclick=togglePause;
@@ -666,6 +674,10 @@ function drawPlayer(){
   if(player.invuln>0&&Math.floor(player.invuln*30)%2===0)ctx.globalAlpha=.45;
 
   const aim=Math.atan2(mouseY-player.y,mouseX-player.x);
+  const moving=keys.has("w")||keys.has("a")||keys.has("s")||keys.has("d")||keys.has("arrowup")||keys.has("arrowdown")||keys.has("arrowleft")||keys.has("arrowright");
+  const frame=moving?Math.floor(runTime*10)%4:0;
+  const steps=[[-2,2],[3,-2],[-2,-2],[3,2]];
+  const step=steps[frame];
   const moving=keys.has("w")||keys.has("a")||keys.has("s")||keys.has("d")||
     keys.has("arrowup")||keys.has("arrowleft")||keys.has("arrowdown")||keys.has("arrowright");
   const frame=moving?Math.floor(runTime*10)%4:0;
@@ -927,6 +939,7 @@ function update(dt){
   player.invuln=Math.max(0,player.invuln-dt);
   spawnTimer+=dt;
   shootTimer-=dt;
+  runTime+=dt;
   dashTimer=Math.max(0,dashTimer-dt);
   bossWarningTimer=Math.max(0,bossWarningTimer-dt);
   toastTimer=Math.max(0,toastTimer-dt);
@@ -943,7 +956,7 @@ function update(dt){
     for(let i=0;i<count;i++)spawnEnemy();
   }
 
-  if(shootTimer<=0){
+  if(mouseDown&&shootTimer<=0){
     shootTimer=player.rate;
     fire();
   }
@@ -1464,11 +1477,11 @@ function drawPlayer(){
   ctx.lineWidth=5;
   ctx.lineCap="round";
   ctx.beginPath();
-  ctx.moveTo(-5,14);ctx.lineTo(-7,23);
-  ctx.moveTo(5,14);ctx.lineTo(7,23);
+  ctx.moveTo(-5,14);ctx.lineTo(-7+step[0],23+step[1]);
+  ctx.moveTo(5,14);ctx.lineTo(7-step[0],23-step[1]);
   ctx.stroke();
 
-  // Aim the character's arms and rifle toward the nearest target.
+  // Aim the character, arms, and rifle toward the mouse.
   ctx.save();
   ctx.rotate(aim);
   ctx.strokeStyle="#c5d9de";
