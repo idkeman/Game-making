@@ -178,6 +178,7 @@ function update(dt){
   spawnTimer+=dt;
   shootTimer-=dt;
   runTime+=dt;
+  gunKick=Math.max(0,gunKick-dt*8);
   dashTimer=Math.max(0,dashTimer-dt);
   bossWarningTimer=Math.max(0,bossWarningTimer-dt);
   toastTimer=Math.max(0,toastTimer-dt);
@@ -884,5 +885,3 @@ function drawVignette(){
   ctx.fillStyle=g;
   ctx.fillRect(0,0,W,H);
 }
-
-gunKick=Math.max(0,gunKick-dt*8);
