@@ -644,18 +644,88 @@ function drawPlayer(){
   ctx.translate(player.x,player.y);
 
   if(player.invuln>0&&Math.floor(player.invuln*30)%2===0)ctx.globalAlpha=.45;
-  ctx.shadowBlur=24;
+
+  const target=nearestTarget();
+  const aim=target?Math.atan2(target.y-player.y,target.x-player.x):0;
+
+  // Ground shadow.
+  ctx.fillStyle="#0008";
+  ctx.beginPath();
+  ctx.ellipse(0,12,16,7,0,0,Math.PI*2);
+  ctx.fill();
+
+  // Body glow.
+  ctx.shadowBlur=18;
   ctx.shadowColor="#b7e9ff";
-  ctx.fillStyle="#e8faff";
-  ctx.beginPath();ctx.arc(0,0,player.r,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#d9edf2";
+  ctx.beginPath();
+  ctx.roundRect(-9,-4,18,23,7);
+  ctx.fill();
 
+  // Jacket/armor.
   ctx.shadowBlur=0;
-  ctx.fillStyle="#6f9cad";
-  ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#526b78";
+  ctx.beginPath();
+  ctx.roundRect(-8,1,16,17,5);
+  ctx.fill();
+  ctx.fillStyle="#8fb5c2";
+  ctx.fillRect(-2,3,4,12);
 
+  // Head and visor.
+  ctx.fillStyle="#dfeef0";
+  ctx.beginPath();
+  ctx.arc(0,-11,8,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle="#18232b";
+  ctx.beginPath();
+  ctx.roundRect(-6,-14,12,6,3);
+  ctx.fill();
+  ctx.fillStyle="#8fe1f4";
+  ctx.fillRect(-4,-13,8,2);
+
+  // Legs.
+  ctx.strokeStyle="#34434d";
+  ctx.lineWidth=5;
+  ctx.lineCap="round";
+  ctx.beginPath();
+  ctx.moveTo(-5,14);ctx.lineTo(-7,23);
+  ctx.moveTo(5,14);ctx.lineTo(7,23);
+  ctx.stroke();
+
+  // Aim the character's arms and rifle toward the nearest target.
+  ctx.save();
+  ctx.rotate(aim);
+  ctx.strokeStyle="#c5d9de";
+  ctx.lineWidth=5;
+  ctx.lineCap="round";
+  ctx.beginPath();
+  ctx.moveTo(-5,4);ctx.lineTo(5,7);
+  ctx.moveTo(-5,8);ctx.lineTo(5,7);
+  ctx.stroke();
+
+  // Rifle stock, receiver, barrel and muzzle.
+  ctx.fillStyle="#222b31";
+  ctx.fillRect(3,4,17,6);
+  ctx.fillStyle="#566a73";
+  ctx.fillRect(10,2,14,4);
+  ctx.fillStyle="#11181d";
+  ctx.fillRect(21,1,16,4);
+  ctx.fillRect(5,10,7,3);
+  ctx.fillStyle="#a8e8f7";
+  ctx.shadowBlur=12;
+  ctx.shadowColor="#8fe1f4";
+  ctx.fillRect(36,1,3,4);
+  ctx.restore();
+
+  // Dash/energy ring.
+  ctx.shadowBlur=10;
+  ctx.shadowColor="#8adfff";
   ctx.strokeStyle="#d9f4ff88";
   ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(0,0,player.r+5,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0,5,19,0,Math.PI*2);
+  ctx.stroke();
+
   ctx.restore();
 }
 
