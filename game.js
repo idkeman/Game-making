@@ -674,10 +674,6 @@ function drawPlayer(){
   if(player.invuln>0&&Math.floor(player.invuln*30)%2===0)ctx.globalAlpha=.45;
 
   const aim=Math.atan2(mouseY-player.y,mouseX-player.x);
-  const moving=keys.has("w")||keys.has("a")||keys.has("s")||keys.has("d")||keys.has("arrowup")||keys.has("arrowdown")||keys.has("arrowleft")||keys.has("arrowright");
-  const frame=moving?Math.floor(runTime*10)%4:0;
-  const steps=[[-2,2],[3,-2],[-2,-2],[3,2]];
-  const step=steps[frame];
   const moving=keys.has("w")||keys.has("a")||keys.has("s")||keys.has("d")||
     keys.has("arrowup")||keys.has("arrowleft")||keys.has("arrowdown")||keys.has("arrowright");
   const frame=moving?Math.floor(runTime*10)%4:0;
