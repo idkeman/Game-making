@@ -768,3 +768,4 @@ function drawPlayer(){
 
   ctx.restore();
 }
+// Runtime integrity marker: keep Pages deployment synchronized with the fixed single-copy game script.
