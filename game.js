@@ -3,7 +3,7 @@ const ctx=canvas.getContext("2d");
 const $=id=>document.getElementById(id);
 
 let W=0,H=0,dpr=1,last=0,running=false,paused=false;
-let level=1,xp=0,xpNeed=10,kills=0,timeLeft=600,hp=100,maxHp=100,score=0;
+let level=1,xp=0,xpNeed=10,kills=0,timeLeft=600,hp=100,maxHp=100,score=0,hits=0,maxHits=3;
 let spawnTimer=0,shootTimer=0,dashTimer=0,enemyId=0,shake=0,pendingLevels=0;
 let mouseX=0,mouseY=0,mouseDown=false,runTime=0,gunKick=0;
 let boss=null,bossesDefeated=0,nextBossTime=480,bossWarningTimer=0,toastTimer=0;
@@ -40,10 +40,10 @@ const upgrades=[
  {icon:"◈",name:"Quick Hands",desc:"Fire 18% faster",apply:()=>player.rate=Math.max(.12,player.rate*.82)},
  {icon:"✧",name:"Split Shot",desc:"+1 projectile per volley",apply:()=>player.shots++},
  {icon:"◇",name:"Fleetfoot",desc:"+12% movement speed",apply:()=>player.speed*=1.12},
- {icon:"◎",name:"Blood Moon",desc:"+15 max health and heal 15",apply:()=>{maxHp+=15;hp=Math.min(maxHp,hp+15)}},
+ {icon:"◎",name:"Second Wind",desc:"Recover one spent hit",apply:()=>{hits=Math.max(0,hits-1)}},
  {icon:"⊙",name:"Long Sight",desc:"+80 attack range",apply:()=>player.range+=80},
  {icon:"❖",name:"Essence Magnet",desc:"+55 pickup radius",apply:()=>player.magnet+=55},
- {icon:"†",name:"Vital Spark",desc:"+1 HP regeneration every 5 seconds",apply:()=>player.regen++},
+ {icon:"†",name:"Iron Will",desc:"Recover one spent hit",apply:()=>{hits=Math.max(0,hits-1)}},
  {icon:"✹",name:"Piercing Star",desc:"Projectiles pierce +1 enemy",apply:()=>player.pierce++},
  {icon:"☄",name:"Critical Night",desc:"+8% critical strike chance",apply:()=>player.crit+=.08},
  {icon:"⌁",name:"Dash Core",desc:"Dash cooldown reduced by 20%",apply:()=>player.dashCd=Math.max(.55,player.dashCd*.8)},
@@ -122,7 +122,7 @@ function resetWorld(){
 }
 
 function start(){
-  level=1;xp=0;xpNeed=10;kills=0;timeLeft=600;hp=maxHp=100;score=0;
+  level=1;xp=0;xpNeed=10;kills=0;timeLeft=600;hits=0;score=0;
   spawnTimer=0;shootTimer=0;dashTimer=0;enemyId=0;shake=0;pendingLevels=0;runTime=0;gunKick=0;
   bossesDefeated=0;nextBossTime=480;bossWarningTimer=0;toastTimer=0;
   Object.assign(player,{
@@ -395,15 +395,12 @@ function defeatBoss(){
 
 function damagePlayer(amount){
   if(player.invuln>0)return;
-  const reduced=Math.max(1,amount-player.armor);
-  hp-=reduced;
-  player.invuln=.22;
-  shake=7;
-  burst(player.x,player.y,9,"damage");
-  if(hp<=0){
-    hp=0;
-    end(false);
-  }
+  hits++;
+  player.invuln=.65;
+  shake=10;
+  burst(player.x,player.y,16,"damage");
+  addRing(player.x,player.y,12,55,"damage");
+  if(hits>=maxHits)end(false);
 }
 
 function updateEnemies(dt){
@@ -579,8 +576,8 @@ function ui(){
   $("kills").textContent=kills;
   $("score").textContent=score.toLocaleString();
   $("xp-fill").style.width=Math.max(0,Math.min(100,xp/xpNeed*100))+"%";
-  $("hp-fill").style.width=Math.max(0,Math.min(100,hp/maxHp*100))+"%";
-  $("hp-text").textContent=Math.ceil(hp)+" / "+Math.ceil(maxHp);
+  const lives=$("lives");
+  lives.innerHTML="HITS "+Array.from({length:maxHits},(_,i)=>`<span class="hit-pip ${i<hits?"spent":"filled"}"></span>`).join("");
 
   if(dashTimer<=0){
     $("dash-status").textContent="DASH READY";
