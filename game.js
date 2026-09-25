@@ -124,6 +124,9 @@ function start(){
   });
   resetWorld();
   running=true;paused=false;keys.clear();
+  mouseX=player.x+100;
+  mouseY=player.y;
+  mouseDown=false;
   $("start").classList.add("hidden");
   $("end").classList.add("hidden");
   $("pause").classList.add("hidden");
@@ -166,6 +169,7 @@ function update(dt){
   player.invuln=Math.max(0,player.invuln-dt);
   spawnTimer+=dt;
   shootTimer-=dt;
+  runTime+=dt;
   dashTimer=Math.max(0,dashTimer-dt);
   bossWarningTimer=Math.max(0,bossWarningTimer-dt);
   toastTimer=Math.max(0,toastTimer-dt);
@@ -182,7 +186,7 @@ function update(dt){
     for(let i=0;i<count;i++)spawnEnemy();
   }
 
-  if(shootTimer<=0){
+  if(mouseDown&&shootTimer<=0){
     shootTimer=player.rate;
     fire();
   }
@@ -664,7 +668,7 @@ function drawPlayer(){
   const aim=Math.atan2(mouseY-player.y,mouseX-player.x);
   const moving=keys.has("w")||keys.has("a")||keys.has("s")||keys.has("d")||
     keys.has("arrowup")||keys.has("arrowleft")||keys.has("arrowdown")||keys.has("arrowright");
-  const frame=moving?Math.floor(runTime*9)%4:0;
+  const frame=moving?Math.floor(runTime*10)%4:0;
   const steps=[[-2,2],[3,-2],[-2,-2],[3,2]];
   const step=steps[frame];
   const bob=moving?Math.sin(runTime*18)*1.2:0;
@@ -1418,8 +1422,7 @@ function drawPlayer(){
 
   if(player.invuln>0&&Math.floor(player.invuln*30)%2===0)ctx.globalAlpha=.45;
 
-  const target=nearestTarget();
-  const aim=target?Math.atan2(target.y-player.y,target.x-player.x):0;
+  const aim=Math.atan2(mouseY-player.y,mouseX-player.x);
 
   // Ground shadow.
   ctx.fillStyle="#0008";
