@@ -2,45 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#07070d">
   <title>Nightfall: Ten Minutes</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main id="game-shell">
     <canvas id="game" aria-label="Nightfall: Ten Minutes game"></canvas>
-    <section id="hud">
+
+    <section id="hud" aria-live="polite">
       <div class="topbar">
         <div class="brand">NIGHTFALL</div>
         <div class="stat"><span>TIME</span><b id="time">10:00</b></div>
         <div class="stat"><span>LEVEL</span><b id="level">1</b></div>
         <div class="stat"><span>KILLS</span><b id="kills">0</b></div>
+        <div class="stat"><span>SCORE</span><b id="score">0</b></div>
       </div>
       <div class="xp"><div id="xp-fill"></div></div>
-      <div class="hp-wrap"><div class="hp"><div id="hp-fill"></div></div><span id="hp-text">100 / 100</span></div>
+
+      <div id="boss-bar" class="boss-bar hidden">
+        <div class="boss-label"><span id="boss-name">NIGHTMARE</span><b id="boss-hp-text">0 / 0</b></div>
+        <div class="boss-track"><div id="boss-fill"></div></div>
+      </div>
+
+      <div class="hp-wrap">
+        <div class="hp"><div id="hp-fill"></div></div>
+        <span id="hp-text">100 / 100</span>
+      </div>
+
+      <div class="dash-status" id="dash-status">DASH READY</div>
     </section>
-    <section id="message" class="hidden"></section>
+
     <section id="upgrade" class="hidden">
       <div class="panel">
-        <p class="eyebrow">LEVEL UP</p><h1>Choose your power</h1>
+        <p class="eyebrow">LEVEL UP</p>
+        <h1>Choose your power</h1>
+        <p class="subtle">The night waits. Make your choice.</p>
         <div id="choices"></div>
       </div>
     </section>
+
     <section id="start" class="overlay">
       <div class="panel intro">
-        <p class="eyebrow">A SURVIVAL SHOOTER</p>
+        <p class="eyebrow">CANVAS SURVIVAL SHOOTER</p>
         <h1>NIGHTFALL</h1>
-        <p>Survive the darkness for <strong>10 minutes</strong>. Your weapon fires automatically. Move, collect essence, evolve, and endure the final swarm.</p>
+        <p>Survive the darkness for <strong>10 minutes</strong>. Your weapon fires automatically. Move, collect essence, stack upgrades, and survive the boss phases.</p>
         <button id="start-btn">BEGIN NIGHT</button>
-        <small>WASD / ARROW KEYS to move · SPACE to dash · P to pause</small>
+        <div class="controls">
+          <span><kbd>WASD</kbd> MOVE</span>
+          <span><kbd>SPACE</kbd> DASH</span>
+          <span><kbd>P</kbd> PAUSE</span>
+        </div>
       </div>
     </section>
+
     <section id="pause" class="overlay hidden">
-      <div class="panel"><p class="eyebrow">NIGHT PAUSED</p><h1>Take a breath.</h1><button id="resume-btn">RESUME</button><button id="quit-btn" class="secondary">QUIT RUN</button></div>
+      <div class="panel">
+        <p class="eyebrow">NIGHT PAUSED</p>
+        <h1>Take a breath.</h1>
+        <button id="resume-btn">RESUME</button>
+        <button id="quit-btn" class="secondary">QUIT RUN</button>
+      </div>
     </section>
+
     <section id="end" class="overlay hidden">
-      <div class="panel"><p id="end-kicker" class="eyebrow">THE NIGHT IS OVER</p><h1 id="end-title">You survived.</h1><p id="end-stats"></p><button id="again-btn">PLAY AGAIN</button></div>
+      <div class="panel">
+        <p id="end-kicker" class="eyebrow">THE NIGHT IS OVER</p>
+        <h1 id="end-title">You survived.</h1>
+        <p id="end-stats" class="subtle"></p>
+        <button id="again-btn">PLAY AGAIN</button>
+      </div>
     </section>
+
+    <div id="toast" class="toast hidden"></div>
   </main>
   <script src="game.js"></script>
 </body>
