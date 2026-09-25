@@ -104,10 +104,10 @@ canvas.addEventListener("pointercancel",()=>{mouseDown=false;});
 canvas.addEventListener("pointerleave",()=>{mouseDown=false;});
 addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 
-$("start-btn").onclick=start;
-$("resume-btn").onclick=togglePause;
+$("start-btn").addEventListener("click",()=>start());
+$("resume-btn").addEventListener("click",()=>togglePause());
 $("quit-btn").onclick=()=>end(false);
-$("again-btn").onclick=start;
+$("again-btn").addEventListener("click",()=>start());
 
 function isUpgradeOpen(){return !$("upgrade").classList.contains("hidden")}
 
