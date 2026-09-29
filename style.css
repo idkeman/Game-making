@@ -105,3 +105,9 @@ kbd{display:inline-block;padding:4px 6px;border:1px solid #49382f;background:#25
 #character-confirm:disabled{opacity:.4;cursor:not-allowed;transform:none}
 @media(max-width:900px){.character-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.character-panel{padding:24px}.character-head{align-items:center}}
 @media(max-width:620px){.character-grid{grid-template-columns:1fr}.character-head{display:block}.meta-wallet{margin-top:12px;text-align:left}.selected-character-box{align-items:flex-start;flex-direction:column}.selected-character-box button{width:100%;margin:0}.character-footer{flex-wrap:wrap}.character-status{order:-1;flex-basis:100%}}
+
+.game-options{margin:16px auto 0;padding:11px 13px;border:1px solid #332621;background:#100c0a;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;max-width:560px}
+.game-options .eyebrow{margin-right:2px}
+.game-options small{flex-basis:100%;color:#71655e;font-size:8px;line-height:1.35;letter-spacing:.04em}
+.option-toggle{margin-left:0!important;padding:10px 14px;font-size:9px}
+.option-toggle.active{background:#d46a45;border-color:#d46a45;color:#160d0a;box-shadow:0 0 18px #b94f3544}
