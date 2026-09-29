@@ -94,7 +94,7 @@ function saveSettings(){
 function updateAutoAimUI(){
   const btn=$("autoaim-btn");
   if(!btn)return;
-  btn.textContent=autoAim?"AUTO-SHOOT: ON":"AUTO-SHOOT: OFF";
+  btn.textContent=autoAim?"AUTO-AIM: ON":"AUTO-AIM: OFF";
   btn.classList.toggle("active",autoAim);
   btn.setAttribute("aria-pressed",String(autoAim));
 }
@@ -102,7 +102,7 @@ function toggleAutoAim(){
   autoAim=!autoAim;
   saveSettings();
   updateAutoAimUI();
-  showToast(autoAim?"AUTO-SHOOT ENABLED":"AUTO-SHOOT DISABLED");
+  showToast(autoAim?"AUTO-AIM ENABLED":"AUTO-AIM DISABLED");
 }
 
 let selectedCharacterId="warden";
