@@ -240,7 +240,6 @@ addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 
 $("start-btn").addEventListener("click",()=>start(false));
 $("character-btn").addEventListener("click",openCharacterSelect);
-$("autoaim-btn").addEventListener("click",toggleAutoAim);
 $("character-back").addEventListener("click",closeCharacterSelect);
 $("character-confirm").addEventListener("click",closeCharacterSelect);
 $("dismiss-keybinds").addEventListener("click",dismissKeybinds);
