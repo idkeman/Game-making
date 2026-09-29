@@ -1,3 +1,20 @@
+if(!window.supabase){
+  const unavailable=async()=>{
+    const el=document.getElementById("mp-status");
+    if(el)el.textContent="Multiplayer unavailable · Solo mode still works";
+    return false;
+  };
+  window.NightfallMP={
+    host:unavailable,
+    join:unavailable,
+    leave:async()=>{},
+    tick:()=>{},
+    drawRemote:()=>{},
+    get enabled(){return false},
+    get room(){return null},
+    get isHost(){return false}
+  };
+}else{
 const NIGHTFALL_SUPABASE_URL="https://dkwmkvruzebnqlmvwzhy.supabase.co";
 const NIGHTFALL_SUPABASE_KEY="sb_publishable_Tur9X4MaQjH__4DnEtwAAQ_Xy9xVl5P";
 const nightfallSupabase=window.supabase.createClient(NIGHTFALL_SUPABASE_URL,NIGHTFALL_SUPABASE_KEY);
@@ -133,3 +150,5 @@ window.NightfallMP={
   host:mpHostRoom,join:mpJoinRoom,leave:mpLeave,tick:mpTick,drawRemote:mpDrawRemote,
   get enabled(){return mpConnected},get room(){return mpRoom},get isHost(){return mpHost}
 };
+
+}
