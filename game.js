@@ -1259,6 +1259,13 @@ function ui(){
   const lives=$("lives");
   lives.innerHTML="HITS "+Array.from({length:maxHits},(_,i)=>`<span class="hit-pip ${i<hits?"spent":"filled"}"></span>`).join("");
 
+  const turretHud=$("turret-hud");
+  if(turretEligible()){
+    turretHud.classList.remove("hidden");
+    $("turret-count").textContent=turrets.length+" · LV "+turretLevel;
+    $("turret-meter").textContent=turretCooldown>0?"T: "+turretCooldown.toFixed(1)+"s · "+turretKills+"/"+turretKillsNeed+" KILLS":"T: READY · "+turretKills+"/"+turretKillsNeed+" KILLS";
+  }else turretHud.classList.add("hidden");
+
   if(dashTimer<=0){
     $("dash-status").textContent="DASH READY";
     $("dash-status").style.opacity="1";
@@ -1293,6 +1300,8 @@ function end(win){
   if(multiplayerMode)window.NightfallMP.leave();
   $("pause").classList.add("hidden");
   $("upgrade").classList.add("hidden");
+  $("turret-upgrades").classList.add("hidden");
+  turretUpgradeOpen=false;
   $("end").classList.remove("hidden");
   $("end-kicker").textContent=win?"DAWN BREAKS":"THE DARKNESS WON";
   $("end-title").textContent=win?"You survived the night.":"You were swallowed by the night.";
