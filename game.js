@@ -1098,20 +1098,24 @@ function castMagicAbility() {
   burst(player.x,player.y,42,"magicNova");
   addRing(player.x,player.y,10,radius,"magicNova");
   shake=Math.max(shake,7);
-  for(const e of [...enemies]) {
-    if(e.dead)continue;
-    const d=Math.hypot(e.x-player.x,e.y-player.y);
-    if(d<=radius+e.r) {
-      e.hp-=95*player.spellPower*(1-d/(radius+e.r)*.45);
-      e.flash=.2;
-      burst(e.x,e.y,8,"magic");
-      if(e.hp<=0)killEnemy(e);
+  if(multiplayerMode&&!window.NightfallMP.isHost) {
+    window.NightfallMP.reportMagicAbility(player.x,player.y,radius,95*player.spellPower,180*player.spellPower);
+  } else {
+    for(const e of [...enemies]) {
+      if(e.dead)continue;
+      const d=Math.hypot(e.x-player.x,e.y-player.y);
+      if(d<=radius+e.r) {
+        e.hp-=95*player.spellPower*(1-d/(radius+e.r)*.45);
+        e.flash=.2;
+        burst(e.x,e.y,8,"magic");
+        if(e.hp<=0)killEnemy(e);
+      }
     }
-  }
-  if(boss&&!boss.dead&&Math.hypot(boss.x-player.x,boss.y-player.y)<=radius+boss.r) {
-    boss.hp-=180*player.spellPower;
-    boss.flash=.2;
-    if(boss.hp<=0)defeatBoss();
+    if(boss&&!boss.dead&&Math.hypot(boss.x-player.x,boss.y-player.y)<=radius+boss.r) {
+      boss.hp-=180*player.spellPower;
+      boss.flash=.2;
+      if(boss.hp<=0)defeatBoss();
+    }
   }
   showToast("ARCANE NOVA · E");
 }
