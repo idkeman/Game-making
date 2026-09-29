@@ -4,7 +4,7 @@ if(!window.supabase){
     if(el)el.textContent="Multiplayer unavailable · Solo mode still works";
     return false;
   };
-  window.NightfallMP={host:unavailable,join:unavailable,leave:async()=>{},tick:()=>{},drawRemote:()=>{},get enabled(){return false},get room(){return null},get isHost(){return false}};
+  window.NightfallMP={host:unavailable,join:unavailable,start:unavailable,leave:async()=>{},tick:()=>{},drawRemote:()=>{},get enabled(){return false},get room(){return null},get isHost(){return false}};
 }else{
 const NIGHTFALL_SUPABASE_URL="https://dkwmkvruzebnqlmvwzhy.supabase.co";
 const NIGHTFALL_SUPABASE_KEY="sb_publishable_Tur9X4MaQjH__4DnEtwAAQ_Xy9xVl5P";
@@ -16,10 +16,14 @@ const remotePlayers=new Map();
 
 function mpSetStatus(text){const el=document.getElementById("mp-status");if(el)el.textContent=text}
 function mpSetRoomUI(code,count=1,max=4){
-  const room=document.getElementById("mp-room"),codeEl=document.getElementById("room-code"),playersEl=document.getElementById("room-players");
+  const room=document.getElementById("mp-room"),codeEl=document.getElementById("room-code"),playersEl=document.getElementById("room-players"),startBtn=document.getElementById("start-coop-btn");
   if(codeEl)codeEl.textContent=code||"------";
   if(playersEl)playersEl.textContent=count+"/"+max+" PLAYERS";
   if(room)room.classList.toggle("hidden",!code);
+  if(startBtn){
+    startBtn.classList.toggle("hidden",!code||!mpHost);
+    startBtn.disabled=!code||!mpHost||!mpConnected;
+  }
 }
 function mpRoomUrl(code){return location.href.split("#")[0]+"#room="+encodeURIComponent(code)}
 function mpCode(){
@@ -37,6 +41,8 @@ function mpWireRoomButtons(){
     try{await navigator.clipboard.writeText(mpRoomUrl(mpRoom));mpSetStatus("Invite link copied")}
     catch{mpSetStatus("Room code: "+mpRoom)}
   };
+  const startBtn=document.getElementById("start-coop-btn");
+  if(startBtn)startBtn.onclick=mpStartGame;
 }
 function mpPresenceIds(){return mpChannel?Object.keys(mpChannel.presenceState()):[]}
 async function mpRefreshRoomRecord(){
@@ -57,6 +63,10 @@ async function mpJoinChannel(code,maxPlayers=4){
     remotePlayers.set(payload.id,{...payload,seen:performance.now()});
   }).on("broadcast",{event:"player-left"},({payload})=>{
     if(payload?.id)remotePlayers.delete(payload.id);
+  }).on("broadcast",{event:"game-start"},()=>{
+    if(mpRoom&&mpConnected&&!mpHost){
+      if(typeof start==="function"&&!running)start(true);
+    }
   }).on("presence",{event:"sync"},async()=>{
     if(channel!==mpChannel)return;
     const ids=mpPresenceIds();
@@ -160,6 +170,18 @@ function mpTick(){
   for(const [id,p] of remotePlayers)if(now-(p.seen||now)>3500)remotePlayers.delete(id);
   if(mpHost&&now-mpLastRoomHeartbeat>=15000){mpLastRoomHeartbeat=now;mpRefreshRoomRecord()}
 }
+async function mpStartGame(){
+  if(!mpHost||!mpConnected||!mpRoom)return false;
+  try{
+    await mpChannel.send({type:"broadcast",event:"game-start",payload:{room:mpRoom}});
+  }catch(error){
+    mpSetStatus("Could not start multiplayer game · "+(error?.message||"unknown error"));
+    return false;
+  }
+  if(typeof start==="function"&&!running)start(true);
+  return true;
+}
+
 function mpDrawRemote(ctx){
   for(const p of remotePlayers.values()){
     const a=Math.atan2(p.aimY-p.y,p.aimX-p.x);ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=.9;
@@ -180,5 +202,5 @@ addEventListener("beforeunload",()=>{
   if(!mpHost||!mpRoom)return;
   try{navigator.sendBeacon(NIGHTFALL_SUPABASE_URL+"/rest/v1/nightfall_rooms?room_code=eq."+encodeURIComponent(mpRoom)+"&host_id=eq."+encodeURIComponent(mpId),new Blob([""],{type:"application/json"}))}catch{}
 });
-window.NightfallMP={host:mpHostRoom,join:mpJoinRoom,leave:mpLeave,tick:mpTick,drawRemote:mpDrawRemote,get enabled(){return mpConnected},get room(){return mpRoom},get isHost(){return mpHost}};
+window.NightfallMP={host:mpHostRoom,join:mpJoinRoom,start:mpStartGame,leave:mpLeave,tick:mpTick,drawRemote:mpDrawRemote,get enabled(){return mpConnected},get room(){return mpRoom},get isHost(){return mpHost}};
 }
