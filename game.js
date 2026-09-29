@@ -16,6 +16,7 @@ let spawnTimer=0,shootTimer=0,dashTimer=0,enemyId=0,shake=0,pendingLevels=0;
 let cameraX=0,cameraY=0;
 let mouseX=0,mouseY=0,mouseDown=false,runTime=0,gunKick=0;
 let boss=null,bossesDefeated=0,nextBossTime=480,bossWarningTimer=0,toastTimer=0,multiplayerMode=false;
+let sharedWorldVersion=0;
 let dying=false,deathTimer=0,deathDuration=3.2,deathSeed=0;
 const keys=new Set();
 const enemies=[];
@@ -559,13 +560,15 @@ function update(dt) {
       damageAura();
     }
   }
-  if(!boss&&timeLeft<=nextBossTime) {
-    spawnBoss();
-  }
-  if(spawnTimer>=spawnInterval()) {
-    spawnTimer=0;
-    const count=timeLeft<120?2:1;
-    for(let i=0;i<count;i++)spawnEnemy();
+  if(!multiplayerMode||window.NightfallMP.isHost) {
+    if(!boss&&timeLeft<=nextBossTime) {
+      spawnBoss();
+    }
+    if(spawnTimer>=spawnInterval()) {
+      spawnTimer=0;
+      const count=timeLeft<120?2:1;
+      for(let i=0;i<count;i++)spawnEnemy();
+    }
   }
   const shootHeld=mouseDown||keys.has(" ");
   if(shootHeld&&shootTimer<=0) {
@@ -577,9 +580,9 @@ function update(dt) {
   }
   updateBullets(dt);
   updateEnemyBullets(dt);
-  updateEnemies(dt);
+  if(!multiplayerMode||window.NightfallMP.isHost)updateEnemies(dt);
   if(!running)return;
-  updateBoss(dt);
+  if(!multiplayerMode||window.NightfallMP.isHost)updateBoss(dt);
   if(!running)return;
   updateGems(dt);
   updateParticles(dt);
@@ -995,6 +998,7 @@ function fire(autoTarget=null) {
   }
 }
 function spawnEnemy() {
+  if(multiplayerMode&&!window.NightfallMP.isHost)return;
   const angle=Math.random()*Math.PI*2;
   const distance=Math.max(W,H)*.65+180+Math.random()*280;
   let x=player.x+Math.cos(angle)*distance;
@@ -1012,6 +1016,7 @@ function spawnEnemy() {
   });
 }
 function spawnBoss() {
+  if(multiplayerMode&&!window.NightfallMP.isHost)return;
   const index=bossesDefeated%bossTypes.length;
   const t=bossTypes[index];
   const scale=1+bossesDefeated*.35+(600-timeLeft)/1200;
@@ -1035,6 +1040,64 @@ function spawnBoss() {
   burst(x,y,35,"boss");
   addRing(x,y,20,160,"boss");
 }
+
+function syncSharedWorld(snapshot) {
+  if(!multiplayerMode||window.NightfallMP.isHost||!snapshot)return;
+  sharedWorldVersion=Number(snapshot.version)||sharedWorldVersion;
+  const incoming=Array.isArray(snapshot.enemies)?snapshot.enemies:[];
+  const byId=new Map(enemies.map(e=>[String(e.id),e]));
+  const seen=new Set();
+
+  for(const data of incoming) {
+    const key=String(data.id);
+    seen.add(key);
+    let enemy=byId.get(key);
+    if(!enemy) {
+      enemy={...data,dead:false};
+      enemies.push(enemy);
+      continue;
+    }
+    Object.assign(enemy,data,{dead:false});
+  }
+
+  for(let i=enemies.length-1;i>=0;i--) {
+    const enemy=enemies[i];
+    if(!seen.has(String(enemy.id))) {
+      if(Math.hypot(enemy.x-player.x,enemy.y-player.y)<1100) {
+        burst(enemy.x,enemy.y,5,"hit");
+      }
+      enemies.splice(i,1);
+    }
+  }
+
+  if(snapshot.boss) {
+    if(!boss||String(boss.id)!==String(snapshot.boss.id)) {
+      boss={...snapshot.boss,dead:false};
+      showToast(snapshot.boss.name+" HAS AWAKENED");
+    } else {
+      Object.assign(boss,snapshot.boss,{dead:false});
+    }
+  } else {
+    boss=null;
+  }
+}
+
+function applySharedEnemyDamage(id,damage) {
+  if(!multiplayerMode||!window.NightfallMP.isHost)return;
+  const amount=Math.max(0,Math.min(1000,Number(damage)||0));
+  const enemy=enemies.find(e=>String(e.id)===String(id));
+  if(enemy&&!enemy.dead) {
+    enemy.hp-=amount;
+    enemy.flash=.08;
+    if(enemy.hp<=0)killEnemy(enemy);
+    return;
+  }
+  if(boss&&String(boss.id)===String(id)&&!boss.dead) {
+    boss.hp-=amount;
+    boss.flash=.08;
+    if(boss.hp<=0)defeatBoss();
+  }
+}
 function updateBullets(dt) {
   for(let i=bullets.length-1;i>=0;i--) {
     const b=bullets[i];
@@ -1051,6 +1114,12 @@ function updateBullets(dt) {
         if(b.turret&&b.turret.type==="basic"&&turretConfig.crit&&Math.random()<turretConfig.crit)damage*=2;
         if(e!==boss&&player.execute&&e.hp/e.max<.4)damage*=1+player.execute;
         if(b.turret&&e!==boss&&e.hp/e.max<.35)damage*=1.25;
+        if(multiplayerMode&&!window.NightfallMP.isHost) {
+          window.NightfallMP.reportEnemyHit(e.id,damage);
+          burst(b.x,b.y,3,b.empowered?"crit":"hit");
+          if(b.hit.size>b.pierce)remove=true;
+          continue;
+        }
         e.hp-=damage;
         e.flash=.08;
         burst(b.x,b.y,3,b.empowered?"crit":"hit");
