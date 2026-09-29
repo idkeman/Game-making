@@ -1545,11 +1545,31 @@ function updateDeath(dt) {
     end(false);
   }
 }
+function getMultiplayerEnemyTarget(enemy) {
+  const targets=[{x:player.x,y:player.y}];
+  if(multiplayerMode&&window.NightfallMP?.isHost&&typeof window.NightfallMP.getRemotePlayers==="function") {
+    for(const p of window.NightfallMP.getRemotePlayers()) {
+      if(!Number.isFinite(p.x)||!Number.isFinite(p.y))continue;
+      if(typeof p.seen==="number"&&performance.now()-p.seen>3500)continue;
+      targets.push({x:p.x,y:p.y});
+    }
+  }
+  let closest=targets[0],best=Infinity;
+  for(const target of targets) {
+    const d=Math.hypot(target.x-enemy.x,target.y-enemy.y);
+    if(d<best) {
+      best=d;
+      closest=target;
+    }
+  }
+  return closest;
+}
 function updateEnemies(dt) {
   for(let i=enemies.length-1;i>=0;i--) {
     const e=enemies[i];
     if(e.dead)continue;
-    const dx=player.x-e.x,dy=player.y-e.y;
+    const target=getMultiplayerEnemyTarget(e);
+    const dx=target.x-e.x,dy=target.y-e.y;
     const d=Math.hypot(dx,dy)||1;
     const a=Math.atan2(dy,dx);
     e.flash=Math.max(0,e.flash-dt);
@@ -1605,8 +1625,9 @@ function updateEnemies(dt) {
 function updateBoss(dt) {
   if(!boss)return;
   boss.flash=Math.max(0,boss.flash-dt);
-  const a=Math.atan2(player.y-boss.y,player.x-boss.x);
-  const d=Math.hypot(player.x-boss.x,player.y-boss.y);
+  const target=getMultiplayerEnemyTarget(boss);
+  const a=Math.atan2(target.y-boss.y,target.x-boss.x);
+  const d=Math.hypot(target.x-boss.x,target.y-boss.y);
   const speed=d>170?boss.speed:boss.speed*.25;
   boss.x+=Math.cos(a)*speed*dt;
   boss.y+=Math.sin(a)*speed*dt;
