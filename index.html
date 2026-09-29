@@ -48,7 +48,10 @@
         <div class="mode-row"><button id="start-btn">SOLO NIGHT</button><button id="host-btn" class="secondary">HOST CO-OP</button></div>
         <div class="join-row"><input id="join-code" maxlength="6" placeholder="ROOM CODE" autocomplete="off"><button id="join-btn" class="secondary">JOIN</button></div>
         <div id="mp-status" class="mp-status">Solo mode · multiplayer is optional</div>
-        <div id="mp-room" class="mp-room hidden"><span>ROOM <b id="room-code"></b></span><button id="copy-room" class="secondary">COPY INVITE</button></div>
+        <div id="mp-room" class="mp-room hidden">
+  <div class="room-code-box"><span>ROOM CODE</span><b id="room-code">------</b><small id="room-players">1/4 PLAYERS</small></div>
+  <div class="room-actions"><button id="copy-room-code" class="secondary">COPY CODE</button><button id="copy-invite" class="secondary">COPY INVITE</button></div>
+</div>
         <div class="controls">
           <span><kbd>WASD</kbd> MOVE</span>
           <span><kbd>SPACE</kbd> DASH</span>
