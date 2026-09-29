@@ -418,6 +418,19 @@ addEventListener("resize",resize);
 resize();
 addEventListener("keydown",e=> {
   const key=e.key.toLowerCase();
+
+  // Secret character-select unlock: Ctrl + Alt + U unlocks every survivor.
+  // It is intentionally ignored everywhere else in the game.
+  if(!$("character-select")?.classList.contains("hidden")&&e.ctrlKey&&e.altKey&&key==="u") {
+    const newlyUnlocked=characters.filter(c=>!meta.unlocked.includes(c.id));
+    for(const c of newlyUnlocked)meta.unlocked.push(c.id);
+    saveMeta();
+    renderCharacterSelect();
+    showToast(newlyUnlocked.length?"ALL SURVIVORS UNLOCKED":"ALL SURVIVORS ALREADY UNLOCKED");
+    e.preventDefault();
+    return;
+  }
+
   keys.add(key);
   if([" ","shift","arrowup","arrowdown","arrowleft","arrowright"].includes(key))e.preventDefault();
   if(key==="p"&&running&&!isUpgradeOpen())togglePause();
