@@ -932,3 +932,80 @@ kbd {
     bottom:72px
   }
 }
+
+
+/* Threat minimap */
+.minimap {
+  position: absolute;
+  top: 82px;
+  right: 24px;
+  width: 218px;
+  padding: 9px;
+  border: 1px solid #4b342d;
+  background: rgba(10, 7, 6, .9);
+  box-shadow: 0 12px 35px #0009, inset 0 0 24px #0008;
+  pointer-events: none;
+  z-index: 4;
+}
+.minimap-title {
+  margin-bottom: 6px;
+  color: #b88c6c;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .16em;
+}
+#minimap-canvas {
+  display: block;
+  width: 198px;
+  height: 150px;
+  border: 1px solid #332621;
+  background: #080605;
+  image-rendering: auto;
+}
+.minimap-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+  margin-top: 7px;
+  color: #76635a;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.minimap-legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.map-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid #0008;
+}
+.map-dot.player { background: #e2c8a5; }
+.map-dot.enemy { background: #b84b3f; }
+.map-dot.boss { background: #e08b55; box-shadow: 0 0 7px #e08b55; }
+.map-dot.friend { background: #d46a45; }
+
+@media (max-width: 700px) {
+  .minimap {
+    top: 70px;
+    right: 10px;
+    width: 158px;
+    padding: 7px;
+  }
+  #minimap-canvas {
+    width: 142px;
+    height: 108px;
+  }
+  .minimap-legend {
+    font-size: 6px;
+    gap: 3px 5px;
+  }
+  .map-dot {
+    width: 6px;
+    height: 6px;
+  }
+}
