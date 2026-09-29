@@ -497,6 +497,7 @@ function turretGainKill(t){
   t.kills++;
   turretKills++;
   if(t.kills>=t.killNeed){
+    gems.push({x:t.x,y:t.y,v:2,r:4});
     t.kills-=t.killNeed;
     t.level++;
     turretLevel=Math.max(turretLevel,t.level);
@@ -585,7 +586,7 @@ function updateTurrets(dt){
       bullets.push({
         x:t.x+Math.cos(angle)*20,y:t.y+Math.sin(angle)*20,
         vx:Math.cos(angle)*info.speed,vy:Math.sin(angle)*info.speed,
-        r:info.size,damage:player.damage*info.damage*(t.type==="basic"?turretConfig.damageMult/.5:1),
+        r:info.size,damage:player.damage*info.damage,
         life:info.life,pierce:info.pierce,hit:new Set(),explode:0,explodeDamage:0,chain:0,chainRange:0,chainDamage:0,
         color:info.color,empowered:false,turret:t
       });
