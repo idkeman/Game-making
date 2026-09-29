@@ -3,6 +3,7 @@ const ctx=canvas.getContext("2d");
 const $=id=>document.getElementById(id);
 let W=0,H=0,dpr=1,last=0,running=false,paused=false;
 let level=1,xp=0,xpNeed=10,kills=0,timeLeft=600,hp=100,maxHp=100,score=0,hits=0,maxHits=3;
+let mana=100,maxMana=100,manaRegen=7,spellPower=1,magicCooldown=0;
 let auraRadius=0,auraTimer=0,auraPulse=0;
 let turrets=[],turretCooldown=0,turretLevel=0,turretKills=0,turretKillsNeed=8;
 let turretUpgradeOpen=false,turretUpgradeChoices=[];
@@ -80,6 +81,10 @@ const characterUpgradeBlueprints= {
     names:["Arc Capacitor","Storm Coil","Chain Voltage","Static Core","Thunder Feed","Arc Reach","Lightning Rod","Conductive Shot","Storm Rhythm","Overcharge","Tesla Frame","Voltage Surge","Chain Mastery","Shockwave","Ion Barrel","Thunderhead","Arc Precision","Static Field","Forked Bolt","Storm Engine","Electric Crown","High Voltage","Thunder Pierce","Chain Reaction","Tempest Core","Arc Cascade","Lightning Rain","Storm Breaker","World Spark","Final Thunder"],
     prefix:"ARC RIFLE"
   },
+  wizard: {
+    names:["Arcane Focus","Mana Well","Mystic Bolts","Spell Haste","Astral Reach","Runic Power","Mana Flow","Arcane Piercer","Wand of Embers","Eldritch Precision","Void Siphon","Spell Echo","Mystic Resonance","Grand Grimoire","Arcane Barrage","Leyline Attunement","Starfire","Witchlight","Sorcerous Momentum","Rune Mastery","Mana Bloom","Astral Overcharge","Forbidden Script","Arcane Conduit","Celestial Bolt","Ethereal Focus","Archmage's Eye","Reality Fracture","Infinite Tome","Apocalypse Spell"],
+    prefix:"ARCANE STAFF"
+  },
   engineer: {
     names:["Builder's Grip","Servo Aim","Copper Wiring","Targeting Servo","Spare Parts","Reinforced Mount","Ammo Conveyor","Gunmetal Core","Repair Drone","Builder's Focus","Sentry Logic","Heavy Mount","Machine Sight","Combat Servos","Rapid Assembly","War Protocol","Target Lock","Factory Feed","Overclocked Servos","Steel Network","Kill Processor","Siege Programming","Machine Precision","Battle Foundry","Sentry Swarm","Industrial Core","Turret Doctrine","Automated Warfare","Master Engineer","Iron Factory"],
     prefix:"ENGINEER"
@@ -89,6 +94,46 @@ function buildCharacterUpgrades(id) {
   const c=characters.find(x=>x.id===id)||characters[0];
   const names=characterUpgradeBlueprints[id]?.names||characterUpgradeBlueprints.warden.names;
   const prefix=characterUpgradeBlueprints[id]?.prefix||c.weapon;
+  if(id==="wizard") {
+    const magicEffects=[
+      ()=>player.damage+=7,
+      ()=>maxMana+=20,
+      ()=>player.rate=Math.max(.12,player.rate*.9),
+      ()=>manaRegen+=2,
+      ()=>player.range+=60,
+      ()=>spellPower+=.12,
+      ()=>manaRegen+=3,
+      ()=>player.pierce++,
+      ()=>player.projectileSpeed*=1.15,
+      ()=>player.spread=Math.max(.003,player.spread*.78),
+      ()=>mana=Math.min(maxMana,mana+30),
+      ()=>player.shots++,
+      ()=>spellPower+=.16,
+      ()=>maxMana+=35,
+      ()=>player.damage+=12,
+      ()=>magicCooldown=Math.max(0,magicCooldown-1),
+      ()=>player.damage+=10,
+      ()=>maxMana+=25,
+      ()=>player.projectileSpeed*=1.18,
+      ()=>player.rate=Math.max(.08,player.rate*.84),
+      ()=>manaRegen+=5,
+      ()=>spellPower+=.2,
+      ()=>maxMana+=45,
+      ()=>magicCooldown=Math.max(0,magicCooldown-1.5),
+      ()=>player.pierce+=2,
+      ()=>player.bulletSize*=1.25,
+      ()=>player.range+=110,
+      ()=>spellPower+=.28,
+      ()=>maxMana+=60,
+      ()=>player.damage+=25
+    ];
+    return names.map((name,i)=>({
+      icon:["✦","◇","✧","◈","☽","✹","✺","☄","◉","❖","☆","⚝"][i%12],
+      name,
+      desc:characterUpgradeDescription(c,i),
+      apply:magicEffects[i]
+    }));
+  }
   const effects=[
   ()=>player.damage+=5,()=>player.rate=Math.max(.06,player.rate*.9),()=>player.range+=45,
   ()=>player.projectileSpeed*=1.1,()=>player.shots++,()=>player.pierce++,()=>player.bulletSize*=1.15,
@@ -121,6 +166,18 @@ function characterUpgradeDescription(c,i) {
   "+1 projectile per volley","+12% movement speed","-18% dash cooldown","+10% critical chance",
   "+100 attack range","+20% projectile speed","+14 "+weapon+" damage","Fire 18% faster","+1 projectile pierce"
   ];
+  if(c.id==="wizard") {
+    return [
+      "+7 spell damage","+20 maximum mana","Cast spells 10% faster","+2 mana regenerated per second",
+      "+60 spell range","+12% spell power","+3 mana regenerated per second","+1 spell pierce",
+      "+15% magic projectile speed","-22% spell spread","Restore 30 mana","+1 magic projectile per cast",
+      "+16% spell power","+35 maximum mana","+12 spell damage","Arcane Nova cooldown -1s",
+      "+10 spell damage","+25 maximum mana","+18% magic projectile speed","Cast spells 16% faster",
+      "+5 mana regenerated per second","+20% spell power","+45 maximum mana","Arcane Nova cooldown -1.5s",
+      "+2 spell pierce","+25% magic projectile size","+110 spell range","+28% spell power",
+      "+60 maximum mana","+25 spell damage"
+    ][i];
+  }
   if(c.id==="engineer"&&i>=0) {
     const turret=[
     "Turret damage +10%","Turret fire rate +8%","Turret range +50","Turret projectile speed +10%",
@@ -196,6 +253,9 @@ const characters=[
 },
 {
   id:"engineer",name:"THE ENGINEER",weapon:"Deployable Turret",weaponKind:"turret",icon:"⚙",maxHits:3,speed:205,damage:14,rate:.65,range:430,shots:1,spread:.04,projectileSpeed:620,pierce:0,bulletSize:1,desc:"Builds a growing army of autonomous guns.",gimmick:"Press T every 20s to deploy. Turrets level from their own kills.",color:"#c08b63",unlockTime:750,unlockEssence:2200,cost:900
+},
+{
+  id:"wizard",name:"THE WIZARD",weapon:"Arcane Staff",weaponKind:"magic",icon:"✦",maxHits:3,speed:210,damage:32,rate:.62,range:520,shots:1,spread:.02,projectileSpeed:540,pierce:1,bulletSize:1.25,desc:"A pure spellcaster. Every attack, upgrade, and ability is magical.",gimmick:"Spells consume mana. Press E to cast Arcane Nova.",color:"#b58ad6",unlockTime:900,unlockEssence:2800,cost:1100
 }
 ];
 let selectedCharacterId="warden";
@@ -318,7 +378,8 @@ function applyCharacter() {
     projectileSpeed:c.projectileSpeed,pierce:c.pierce,bulletSize:c.bulletSize,weapon:c.weaponKind,
     weaponName:c.weapon,color:c.color,gimmick:c.id,gimmickCooldown:0,shotCount:0,heat:0,overheated:0,
     dashPower:c.id==="ironclad"?145:170,dashCd:c.id==="gunslinger"?2.1:2.4,
-    magnet:75,regen:0,armor:0,crit:0,execute:0,_regen:0
+    magnet:75,regen:0,armor:0,crit:0,execute:0,_regen:0,
+    mana:100,maxMana:100,manaRegen:7,spellPower:1,magicCooldown:0
   });
 }
 const bossTypes=[
@@ -348,6 +409,7 @@ addEventListener("keydown",e=> {
     if(running&&!paused&&!isUpgradeOpen())tryDash();
   }
   if(key==="f"&&running&&!paused&&!isUpgradeOpen())toggleAutoAim();
+  if(key==="e"&&running&&!paused&&!isUpgradeOpen())castMagicAbility();
   if(key==="t"&&running&&!paused&&!isUpgradeOpen())deployTurret("basic");
   if(key==="1"&&running&&!paused&&!isUpgradeOpen())deployTurret("flamethrower");
   if(key==="2"&&running&&!paused&&!isUpgradeOpen())deployTurret("minigun");
@@ -419,6 +481,11 @@ function start(isMultiplayer=false) {
   timeLeft=600;
   hits=0;
   score=0;
+  mana=100;
+  maxMana=100;
+  manaRegen=7;
+  spellPower=1;
+  magicCooldown=0;
   multiplayerMode=isMultiplayer;
   spawnTimer=0;
   shootTimer=0;
@@ -540,6 +607,10 @@ function update(dt) {
   gunKick=Math.max(0,gunKick-dt*8);
   dashTimer=Math.max(0,dashTimer-dt);
   turretCooldown=Math.max(0,turretCooldown-dt);
+  magicCooldown=Math.max(0,magicCooldown-dt);
+  if(player.gimmick==="wizard") {
+    mana=Math.min(maxMana,mana+manaRegen*dt);
+  }
   updateTurrets(dt);
   if(player.gimmickCooldown>0)player.gimmickCooldown=Math.max(0,player.gimmickCooldown-dt);
   if(player.weapon==="flame") {
@@ -934,7 +1005,23 @@ function fire(autoTarget=null) {
       empowered:opts.empowered||false
     });
   };
-  if(player.weapon==="shotgun") {
+  if(player.weapon==="magic") {
+    const spellCost=9;
+    if(mana<spellCost)return;
+    mana-=spellCost;
+    const empowered=Math.random()<.12;
+    makeBullet(base,{
+      damage:player.damage*player.spellPower*(empowered?1.8:1),
+      r:6*player.bulletSize,
+      life:1.8,
+      pierce:player.pierce+(empowered?2:0),
+      speed:player.projectileSpeed,
+      color:empowered?"#e5b6ff":"#b58ad6",
+      empowered
+    });
+    burst(player.x+Math.cos(base)*25,player.y+Math.sin(base)*25,7,empowered?"magicCrit":"magic");
+  }
+  else if(player.weapon==="shotgun") {
     for(let i=0;i<5;i++) {
       const a=base+(i-2)*.15+(Math.random()-.5)*.06;
       makeBullet(a, {
@@ -998,6 +1085,37 @@ function fire(autoTarget=null) {
     }
   }
 }
+function castMagicAbility() {
+  if(player.gimmick!=="wizard"||magicCooldown>0)return;
+  const cost=35;
+  if(mana<cost) {
+    showToast("NOT ENOUGH MANA");
+    return;
+  }
+  mana-=cost;
+  magicCooldown=8;
+  const radius=145;
+  burst(player.x,player.y,42,"magicNova");
+  addRing(player.x,player.y,10,radius,"magicNova");
+  shake=Math.max(shake,7);
+  for(const e of [...enemies]) {
+    if(e.dead)continue;
+    const d=Math.hypot(e.x-player.x,e.y-player.y);
+    if(d<=radius+e.r) {
+      e.hp-=95*player.spellPower*(1-d/(radius+e.r)*.45);
+      e.flash=.2;
+      burst(e.x,e.y,8,"magic");
+      if(e.hp<=0)killEnemy(e);
+    }
+  }
+  if(boss&&!boss.dead&&Math.hypot(boss.x-player.x,boss.y-player.y)<=radius+boss.r) {
+    boss.hp-=180*player.spellPower;
+    boss.flash=.2;
+    if(boss.hp<=0)defeatBoss();
+  }
+  showToast("ARCANE NOVA · E");
+}
+
 function spawnEnemy() {
   if(multiplayerMode&&!window.NightfallMP.isHost)return;
   const angle=Math.random()*Math.PI*2;
@@ -1573,6 +1691,13 @@ function ui() {
   $("level").textContent=level;
   $("kills").textContent=kills;
   $("score").textContent=score.toLocaleString();
+  const manaHud=$("mana-hud");
+  if(manaHud) {
+    manaHud.classList.toggle("hidden",activeCharacter.id!=="wizard");
+    $("mana-fill").style.width=Math.max(0,Math.min(100,mana/maxMana*100))+"%";
+    $("mana-text").textContent=Math.ceil(mana)+" / "+Math.ceil(maxMana);
+    $("magic-cooldown").textContent=magicCooldown>0?"NOVA "+magicCooldown.toFixed(1)+"s":"NOVA READY · E";
+  }
   $("xp-fill").style.width=Math.max(0,Math.min(100,xp/xpNeed*100))+"%";
   const lives=$("lives");
   lives.innerHTML="HITS "+Array.from( {
