@@ -243,6 +243,7 @@ $("character-btn").addEventListener("click",openCharacterSelect);
 $("autoaim-btn").addEventListener("click",toggleAutoAim);
 $("character-back").addEventListener("click",closeCharacterSelect);
 $("character-confirm").addEventListener("click",closeCharacterSelect);
+$("dismiss-keybinds").addEventListener("click",dismissKeybinds);
 updateCharacterSummary();
 renderCharacterSelect();
 $("host-btn").addEventListener("click",async()=>{
@@ -281,7 +282,7 @@ function start(isMultiplayer=false){
   maxHits=3;
   applyCharacter();
   resetWorld();
-  running=true;paused=false;keys.clear();
+  running=true;paused=true;keys.clear();
   cameraX=player.x;
   cameraY=player.y;
   mouseX=W/2+100;
@@ -311,6 +312,11 @@ function toggleAutoAim(){
 }
 function dismissKeybinds(){
   $("keybinds").classList.add("hidden");
+  if(running&&paused){
+    paused=false;
+    last=performance.now();
+    requestAnimationFrame(loop);
+  }
 }
 function togglePause(){
   if(!running||isUpgradeOpen())return;
