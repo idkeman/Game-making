@@ -990,4 +990,4 @@ function drawDeathOverlay(){
     ctx.fillRect(cameraX-W/2,cameraY-H/2,W,H);
   }
   ctx.restore();
-}}
+}
