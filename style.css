@@ -957,7 +957,7 @@ kbd {
 #minimap-canvas {
   display: block;
   width: 198px;
-  height: 150px;
+  height: 198px;
   border: 1px solid #332621;
   background: #080605;
   image-rendering: auto;
@@ -998,7 +998,7 @@ kbd {
   }
   #minimap-canvas {
     width: 142px;
-    height: 108px;
+    height: 142px;
   }
   .minimap-legend {
     font-size: 6px;
