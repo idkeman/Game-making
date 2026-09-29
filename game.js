@@ -4,6 +4,7 @@ const $=id=>document.getElementById(id);
 
 let W=0,H=0,dpr=1,last=0,running=false,paused=false;
 let level=1,xp=0,xpNeed=10,kills=0,timeLeft=600,hp=100,maxHp=100,score=0,hits=0,maxHits=3;
+let auraRadius=0,auraTimer=0,auraPulse=0;
 let spawnTimer=0,shootTimer=0,dashTimer=0,enemyId=0,shake=0,pendingLevels=0;
 let cameraX=0,cameraY=0;
 let mouseX=0,mouseY=0,mouseDown=false,runTime=0,gunKick=0;
@@ -52,6 +53,7 @@ const upgrades=[
  {icon:"✺",name:"Heavy Rounds",desc:"+25% projectile size and +2 damage",apply:()=>{player.bulletSize*=1.25;player.damage+=2}},
  {icon:"♥",name:"Sanguine Pact",desc:"Heal 8% of max health",apply:()=>hp=Math.min(maxHp,hp+maxHp*.08)},
  {icon:"☀",name:"Solar Core",desc:"+12% projectile speed and +15 range",apply:()=>{player.projectileSpeed=(player.projectileSpeed||650)*1.12;player.range+=15}},
+ {icon:"◉",name:"Blood Radius",desc:"Create a damaging aura that deals 25% of enemy max health. +35 radius per upgrade.",apply:()=>{auraRadius=Math.min(260,auraRadius+70);auraTimer=0}},
  {icon:"⚔",name:"Executioner",desc:"+15% damage against enemies below 40% HP",apply:()=>player.execute=(player.execute||0)+.15}
 ];
 
@@ -272,6 +274,7 @@ function start(isMultiplayer=false){
   level=1;xp=0;xpNeed=10;kills=0;timeLeft=600;hits=0;score=0;multiplayerMode=isMultiplayer;
   spawnTimer=0;shootTimer=0;dashTimer=0;enemyId=0;shake=0;pendingLevels=0;runTime=0;gunKick=0;
   bossesDefeated=0;nextBossTime=480;bossWarningTimer=0;toastTimer=0;
+  auraRadius=0;auraTimer=0;auraPulse=0;
   Object.assign(player,{
     x:0,y:0,r:14,speed:220,damage:18,rate:.46,range:410,shots:1,
     spread:.15,magnet:75,regen:0,armor:0,crit:0,pierce:0,bulletSize:1,
@@ -371,6 +374,16 @@ function update(dt){
   cameraX=player.x;
   cameraY=player.y;
 
+  if(auraRadius>0){
+    auraTimer-=dt;
+    auraPulse=Math.max(0,auraPulse-dt*4);
+    if(auraTimer<=0){
+      auraTimer=.75;
+      auraPulse=1;
+      damageAura();
+    }
+  }
+
   if(!boss&&timeLeft<=nextBossTime){
     spawnBoss();
   }
@@ -404,6 +417,21 @@ function update(dt){
   updateRegen(dt);
   if(multiplayerMode)window.NightfallMP.tick(dt);
   ui();
+}
+
+function damageAura(){
+  const targets=boss?[boss,...enemies]:enemies;
+  for(const e of [...targets]){
+    if(!e||e.dead)continue;
+    if(Math.hypot(e.x-player.x,e.y-player.y)<=auraRadius+e.r){
+      const damage=e.max*.25;
+      e.hp-=damage;
+      e.flash=.15;
+      burst(e.x,e.y,4,"aura");
+      if(e.hp<=0)killEnemy(e);
+    }
+  }
+  if(boss&&boss.hp<=0)defeatBoss();
 }
 
 function spawnInterval(){
@@ -1088,6 +1116,7 @@ function draw(){
   ctx.translate(W/2-cameraX,H/2-cameraY);
   drawBackground();
   drawRings();
+  drawAura();
   for(const g of gems)drawGem(g);
   for(const e of enemies)drawEnemy(e);
   if(boss)drawBoss(boss);
@@ -1173,6 +1202,21 @@ function getAimPoint(){
     if(target)return {x:target.x,y:target.y};
   }
   return {x:cameraX-W/2+mouseX,y:cameraY-H/2+mouseY};
+}
+
+function drawAura(){
+  if(auraRadius<=0)return;
+  const pulse=1+(auraPulse*.035)+Math.sin(runTime*5)*.018;
+  ctx.save();
+  ctx.globalAlpha=.10;
+  ctx.fillStyle="#b94f35";
+  ctx.beginPath();ctx.arc(player.x,player.y,auraRadius*pulse,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.55;
+  ctx.strokeStyle="#d46a45";ctx.lineWidth=2;
+  ctx.setLineDash([7,9]);
+  ctx.beginPath();ctx.arc(player.x,player.y,auraRadius*pulse,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
 }
 
 function drawPlayer(){
