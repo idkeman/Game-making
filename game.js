@@ -83,26 +83,26 @@ const characters=[
 ];
 
 const SETTINGS_KEY="nightfall_settings_v1";
-let autoShoot=false;
+let autoAim=false;
 try{
   const settings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null");
-  autoShoot=!!settings?.autoShoot;
+  autoAim=!!settings?.autoAim;
 }catch{}
 function saveSettings(){
-  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({autoShoot}))}catch{}
+  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({autoAim}))}catch{}
 }
-function updateAutoShootUI(){
-  const btn=$("autoshoot-btn");
+function updateAutoAimUI(){
+  const btn=$("autoaim-btn");
   if(!btn)return;
-  btn.textContent=autoShoot?"AUTO-SHOOT: ON":"AUTO-SHOOT: OFF";
-  btn.classList.toggle("active",autoShoot);
-  btn.setAttribute("aria-pressed",String(autoShoot));
+  btn.textContent=autoAim?"AUTO-SHOOT: ON":"AUTO-SHOOT: OFF";
+  btn.classList.toggle("active",autoAim);
+  btn.setAttribute("aria-pressed",String(autoAim));
 }
-function toggleAutoShoot(){
-  autoShoot=!autoShoot;
+function toggleAutoAim(){
+  autoAim=!autoAim;
   saveSettings();
-  updateAutoShootUI();
-  showToast(autoShoot?"AUTO-SHOOT ENABLED":"AUTO-SHOOT DISABLED");
+  updateAutoAimUI();
+  showToast(autoAim?"AUTO-SHOOT ENABLED":"AUTO-SHOOT DISABLED");
 }
 
 let selectedCharacterId="warden";
@@ -235,9 +235,9 @@ resize();
 addEventListener("keydown",e=>{
   const key=e.key.toLowerCase();
   keys.add(key);
-  if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(key))e.preventDefault();
+  if([" ","shift","arrowup","arrowdown","arrowleft","arrowright"].includes(key))e.preventDefault();
   if(key==="p"&&running&&!isUpgradeOpen())togglePause();
-  if(e.code==="Space"&&running&&!paused&&!isUpgradeOpen())tryDash();
+  if(e.code==="ShiftLeft"||e.code==="ShiftRight"){if(running&&!paused&&!isUpgradeOpen())tryDash();}
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 
@@ -262,8 +262,8 @@ addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 
 $("start-btn").addEventListener("click",()=>start(false));
 $("character-btn").addEventListener("click",openCharacterSelect);
-$("autoshoot-btn").addEventListener("click",toggleAutoShoot);
-updateAutoShootUI();
+$("autoaim-btn").addEventListener("click",toggleAutoAim);
+updateAutoAimUI();
 $("character-back").addEventListener("click",closeCharacterSelect);
 $("character-confirm").addEventListener("click",closeCharacterSelect);
 updateCharacterSummary();
@@ -390,9 +390,10 @@ function update(dt){
     for(let i=0;i<count;i++)spawnEnemy();
   }
 
-  if((autoShoot||mouseDown)&&shootTimer<=0){
-    const target=autoShoot?nearestTarget():null;
-    if(!autoShoot||target){
+  const shootHeld=mouseDown||keys.has(" ");
+  if(shootHeld&&shootTimer<=0){
+    const target=autoAim?nearestTarget():null;
+    if(!autoAim||target){
       shootTimer=player.rate;
       fire(target);
     }
