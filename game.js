@@ -268,8 +268,10 @@ function nearestTarget(){
 }
 
 function fire(){
-  const dx=mouseX-player.x;
-  const dy=mouseY-player.y;
+  const targetX=cameraX-W/2+mouseX;
+  const targetY=cameraY-H/2+mouseY;
+  const dx=targetX-player.x;
+  const dy=targetY-player.y;
   if(Math.hypot(dx,dy)<1)return;
 
   const base=Math.atan2(dy,dx);
