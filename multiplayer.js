@@ -8,6 +8,7 @@ if(!window.supabase) {
     host:unavailable,join:unavailable,start:unavailable,leave:async()=> {
     },tick:()=> {
     },reportEnemyHit:()=> {
+    },reportMagicAbility:()=> {
     },drawRemote:()=> {
     },get enabled() {
       return false
@@ -135,6 +136,13 @@ if(!window.supabase) {
     })=> {
       if(!payload||!mpHost)return;
       if(typeof applySharedEnemyDamage==="function")applySharedEnemyDamage(payload.id,payload.damage);
+    }).on("broadcast", {
+      event:"magic-ability"
+    },( {
+      payload
+    })=> {
+      if(!payload||!mpHost)return;
+      if(typeof applySharedMagicAbility==="function")applySharedMagicAbility(payload.x,payload.y,payload.radius,payload.damage,payload.bossDamage);
     }).on("broadcast", {
       event:"player-left"
     },( {
@@ -382,6 +390,18 @@ if(!window.supabase) {
     }
   }
 
+  function mpReportMagicAbility(x,y,radius,damage,bossDamage) {
+    if(!mpConnected||!mpChannel||mpHost)return;
+    mpChannel.send({
+      type:"broadcast",
+      event:"magic-ability",
+      payload:{
+        x:Number(x)||0,y:Number(y)||0,radius:Number(radius)||0,
+        damage:Number(damage)||0,bossDamage:Number(bossDamage)||0
+      }
+    });
+  }
+
   function mpReportEnemyHit(id,damage) {
     if(!mpConnected||!mpChannel||mpHost)return;
     const amount=Math.max(0,Math.min(1000,Number(damage)||0));
@@ -469,7 +489,7 @@ if(!window.supabase) {
     }
   });
   window.NightfallMP= {
-    host:mpHostRoom,join:mpJoinRoom,start:mpStartGame,leave:mpLeave,tick:mpTick,reportEnemyHit:mpReportEnemyHit,drawRemote:mpDrawRemote,getRemotePlayers:()=>Array.from(remotePlayers.values()),get enabled() {
+    host:mpHostRoom,join:mpJoinRoom,start:mpStartGame,leave:mpLeave,tick:mpTick,reportEnemyHit:mpReportEnemyHit,reportMagicAbility:mpReportMagicAbility,drawRemote:mpDrawRemote,getRemotePlayers:()=>Array.from(remotePlayers.values()),get enabled() {
       return mpConnected
     },get room() {
       return mpRoom
