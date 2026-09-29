@@ -756,7 +756,177 @@ function drawGem(g){
   ctx.save();ctx.translate(g.x,g.y);const pulse=1+Math.sin(runTime*7+g.x*.02)*.12;ctx.scale(pulse,pulse);ctx.shadowBlur=14;ctx.shadowColor="#d46a45";ctx.fillStyle="#d46a45";ctx.rotate(Math.PI/4);ctx.fillRect(-g.r*.65,-g.r*.65,g.r*1.3,g.r*1.3);ctx.restore();
 }
 function drawEnemy(e){
-  ctx.save();ctx.translate(e.x,e.y);ctx.globalAlpha=e.flash>0?.5:1;ctx.shadowBlur=14;ctx.shadowColor=e.color;ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(0,0,e.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle="#e4b39c";ctx.globalAlpha=.75;ctx.beginPath();ctx.arc(e.r*.28,-e.r*.2,Math.max(2,e.r*.18),0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.save();
+  ctx.translate(e.x,e.y);
+  ctx.globalAlpha=e.flash>0?.55:1;
+
+  const pulse=Math.sin(runTime*5+e.id)*.04;
+  const facing=Math.atan2(player.y-e.y,player.x-e.x);
+  ctx.rotate(facing);
+
+  // Ground shadow
+  ctx.save();
+  ctx.rotate(-facing);
+  ctx.fillStyle="#0009";
+  ctx.beginPath();
+  ctx.ellipse(0,e.r*.78,e.r*1.05,e.r*.38,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.shadowBlur=14;
+  ctx.shadowColor=e.color;
+  ctx.fillStyle=e.color;
+
+  if(e.kind==="Wisp"){
+    // A floating, ragged corpse-like spirit.
+    ctx.beginPath();
+    ctx.moveTo(-e.r*.85,e.r*.15);
+    ctx.quadraticCurveTo(-e.r*.7,-e.r*.85,0,-e.r);
+    ctx.quadraticCurveTo(e.r*.7,-e.r*.85,e.r*.85,e.r*.15);
+    ctx.lineTo(e.r*.45,e.r*.72);
+    ctx.lineTo(e.r*.12,e.r*.35);
+    ctx.lineTo(-e.r*.2,e.r*.82);
+    ctx.lineTo(-e.r*.55,e.r*.5);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+    ctx.fillStyle="#f0c19b";
+    ctx.beginPath();
+    ctx.arc(-e.r*.3,-e.r*.18,e.r*.16,0,Math.PI*2);
+    ctx.arc(e.r*.3,-e.r*.18,e.r*.16,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#35140f";
+    ctx.beginPath();
+    ctx.arc(-e.r*.3,-e.r*.18,e.r*.07,0,Math.PI*2);
+    ctx.arc(e.r*.3,-e.r*.18,e.r*.07,0,Math.PI*2);
+    ctx.fill();
+
+  }else if(e.kind==="Stalker"){
+    // Tall, hunched zombie with long arms and a visible face.
+    ctx.save();
+    ctx.translate(0,pulse*5);
+
+    ctx.beginPath();
+    ctx.ellipse(0,2,e.r*.72,e.r*.98,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle=e.color;
+    ctx.lineWidth=Math.max(4,e.r*.28);
+    ctx.lineCap="round";
+    ctx.beginPath();
+    ctx.moveTo(-e.r*.45,-e.r*.05);
+    ctx.lineTo(-e.r*1.05,e.r*.62);
+    ctx.moveTo(e.r*.45,-e.r*.05);
+    ctx.lineTo(e.r*1.05,e.r*.62);
+    ctx.stroke();
+
+    ctx.fillStyle="#d3a17e";
+    ctx.beginPath();
+    ctx.ellipse(0,-e.r*.55,e.r*.53,e.r*.48,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#2a120f";
+    ctx.beginPath();
+    ctx.ellipse(-e.r*.2,-e.r*.58,e.r*.11,e.r*.15,0,0,Math.PI*2);
+    ctx.ellipse(e.r*.2,-e.r*.58,e.r*.11,e.r*.15,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#e06b4b";
+    ctx.beginPath();
+    ctx.arc(-e.r*.2,-e.r*.58,e.r*.045,0,Math.PI*2);
+    ctx.arc(e.r*.2,-e.r*.58,e.r*.045,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle="#431914";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(-e.r*.25,-e.r*.32);
+    ctx.lineTo(0,-e.r*.2);
+    ctx.lineTo(e.r*.28,-e.r*.32);
+    ctx.stroke();
+    ctx.restore();
+
+  }else if(e.kind==="Swift"){
+    // Low, four-legged crawler.
+    ctx.save();
+    ctx.translate(0,Math.sin(runTime*16+e.id)*1.5);
+
+    ctx.beginPath();
+    ctx.ellipse(0,0,e.r*1.15,e.r*.7,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle=e.color;
+    ctx.lineWidth=Math.max(2,e.r*.22);
+    ctx.lineCap="round";
+    for(let side=-1;side<=1;side+=2){
+      ctx.beginPath();
+      ctx.moveTo(side*e.r*.45,-e.r*.25);
+      ctx.lineTo(side*e.r*1.15,-e.r*.7);
+      ctx.moveTo(side*e.r*.5,e.r*.2);
+      ctx.lineTo(side*e.r*1.15,e.r*.65);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle="#e7b18d";
+    ctx.beginPath();
+    ctx.arc(e.r*.62,-e.r*.15,e.r*.24,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle="#2b100d";
+    ctx.beginPath();
+    ctx.arc(e.r*.69,-e.r*.2,e.r*.075,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+  }else{
+    // Brute: huge hulking monster with shoulders, fists, and angry eyes.
+    ctx.save();
+    ctx.scale(1+pulse,1-pulse*.5);
+
+    ctx.beginPath();
+    ctx.ellipse(0,2,e.r*.82,e.r*.95,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.strokeStyle=e.color;
+    ctx.lineWidth=Math.max(7,e.r*.3);
+    ctx.lineCap="round";
+    ctx.beginPath();
+    ctx.moveTo(-e.r*.58,-e.r*.25);
+    ctx.lineTo(-e.r*1.08,e.r*.5);
+    ctx.moveTo(e.r*.58,-e.r*.25);
+    ctx.lineTo(e.r*1.08,e.r*.5);
+    ctx.stroke();
+
+    ctx.fillStyle="#c48c67";
+    ctx.beginPath();
+    ctx.ellipse(0,-e.r*.52,e.r*.58,e.r*.46,0,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#31120f";
+    ctx.beginPath();
+    ctx.arc(-e.r*.22,-e.r*.56,e.r*.13,0,Math.PI*2);
+    ctx.arc(e.r*.22,-e.r*.56,e.r*.13,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#e96e48";
+    ctx.beginPath();
+    ctx.arc(-e.r*.22,-e.r*.56,e.r*.055,0,Math.PI*2);
+    ctx.arc(e.r*.22,-e.r*.56,e.r*.055,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#39140f";
+    ctx.beginPath();
+    ctx.moveTo(-e.r*.32,-e.r*.25);
+    ctx.lineTo(0,-e.r*.08);
+    ctx.lineTo(e.r*.32,-e.r*.25);
+    ctx.lineTo(0,e.r*.02);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  ctx.restore();
 }
 function drawBoss(e){
   ctx.save();ctx.translate(e.x,e.y);const pulse=1+Math.sin(runTime*4)*.04;ctx.scale(pulse,pulse);ctx.shadowBlur=30;ctx.shadowColor=e.color;ctx.fillStyle=e.color;ctx.beginPath();ctx.arc(0,0,e.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle="#d09a78";ctx.globalAlpha=.65;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,e.r*.7,0,Math.PI*2);ctx.stroke();ctx.fillStyle="#1b0f0c";ctx.globalAlpha=1;ctx.beginPath();ctx.arc(-e.r*.28,-e.r*.12,e.r*.12,0,Math.PI*2);ctx.arc(e.r*.28,-e.r*.12,e.r*.12,0,Math.PI*2);ctx.fill();ctx.restore();
