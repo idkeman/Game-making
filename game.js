@@ -5,6 +5,10 @@ const $=id=>document.getElementById(id);
 let W=0,H=0,dpr=1,last=0,running=false,paused=false;
 let level=1,xp=0,xpNeed=10,kills=0,timeLeft=600,hp=100,maxHp=100,score=0,hits=0,maxHits=3;
 let auraRadius=0,auraTimer=0,auraPulse=0;
+let turrets=[],turretCooldown=0,turretLevel=0,turretKills=0,turretKillsNeed=8;
+let turretUpgradeOpen=false,turretUpgradeChoices=[];
+let turretVariant="basic",turretVariantUnlocked=false;
+const turretConfig={damageMult:.5,fireRate:1.05,range:480,bulletSpeed:650,bulletSize:1,pierce:0,spread:0,shots:1,crit:0,life:1.4};
 let spawnTimer=0,shootTimer=0,dashTimer=0,enemyId=0,shake=0,pendingLevels=0;
 let cameraX=0,cameraY=0;
 let mouseX=0,mouseY=0,mouseDown=false,runTime=0,gunKick=0;
@@ -81,7 +85,8 @@ const characters=[
   {id:"hellbringer",name:"HELLBRINGER",weapon:"Hellfire Hose",weaponKind:"flame",icon:"♨",maxHits:4,speed:205,damage:8,rate:.08,range:240,shots:1,spread:.22,projectileSpeed:520,pierce:0,bulletSize:1.6,desc:"A short-range stream of fire that melts anything nearby.",gimmick:"Extreme fire rate and close range. Builds heat.",color:"#df7548",unlockTime:360,unlockEssence:700,cost:350},
   {id:"huntress",name:"THE HUNTRESS",weapon:"Nailbow",weaponKind:"nail",icon:"➶",maxHits:3,speed:260,damage:28,rate:.36,range:650,shots:1,spread:.015,projectileSpeed:920,pierce:2,bulletSize:.75,desc:"Fast, precise, and built to punch through lines of enemies.",gimmick:"Every 6th shot becomes an empowered piercing shot.",color:"#c89568",unlockTime:450,unlockEssence:950,cost:450},
   {id:"revenant",name:"THE REVENANT",weapon:"Blood Cannon",weaponKind:"blood",icon:"●",maxHits:2,speed:185,damage:40,rate:.62,range:500,shots:1,spread:0,projectileSpeed:430,pierce:1,bulletSize:2,desc:"Slow, dangerous, and almost impossible to keep down.",gimmick:"Kills have a chance to restore a lost hit. Only 2 hits.",color:"#b84f48",unlockTime:540,unlockEssence:1250,cost:550},
-  {id:"stormcaller",name:"STORMCALLER",weapon:"Arc Rifle",weaponKind:"arc",icon:"ϟ",maxHits:3,speed:225,damage:20,rate:.50,range:500,shots:1,spread:.02,projectileSpeed:720,pierce:0,bulletSize:1,desc:"A crackling rifle whose shots leap from target to target.",gimmick:"Hits chain to up to 2 nearby enemies. Lower direct damage.",color:"#c77a58",unlockTime:600,unlockEssence:1600,cost:700}
+  {id:"stormcaller",name:"STORMCALLER",weapon:"Arc Rifle",weaponKind:"arc",icon:"ϟ",maxHits:3,speed:225,damage:20,rate:.50,range:500,shots:1,spread:.02,projectileSpeed:720,pierce:0,bulletSize:1,desc:"A crackling rifle whose shots leap from target to target.",gimmick:"Hits chain to up to 2 nearby enemies. Lower direct damage.",color:"#c77a58",unlockTime:600,unlockEssence:1600,cost:700},
+  {id:"engineer",name:"THE ENGINEER",weapon:"Deployable Turret",weaponKind:"turret",icon:"⚙",maxHits:3,speed:205,damage:14,rate:.65,range:430,shots:1,spread:.04,projectileSpeed:620,pierce:0,bulletSize:1,desc:"Builds a growing army of autonomous guns.",gimmick:"Press T every 20s to deploy. Turrets level from their own kills.",color:"#c08b63",unlockTime:750,unlockEssence:2200,cost:900}
 ];
 
 let selectedCharacterId="warden";
@@ -218,6 +223,10 @@ addEventListener("keydown",e=>{
   if(key==="p"&&running&&!isUpgradeOpen())togglePause();
   if(e.code==="ShiftLeft"||e.code==="ShiftRight"){if(running&&!paused&&!isUpgradeOpen())tryDash();}
   if(key==="f"&&running&&!paused&&!isUpgradeOpen())toggleAutoAim();
+  if(key==="t"&&running&&!paused&&!isUpgradeOpen())deployTurret("basic");
+  if(key==="1"&&running&&!paused&&!isUpgradeOpen())deployTurret("flamethrower");
+  if(key==="2"&&running&&!paused&&!isUpgradeOpen())deployTurret("minigun");
+  if(key==="3"&&running&&!paused&&!isUpgradeOpen())deployTurret("autocannon");
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 
@@ -257,7 +266,7 @@ $("resume-btn").addEventListener("click",()=>togglePause());
 $("quit-btn").onclick=()=>end(false);
 $("again-btn").addEventListener("click",()=>start(false));
 
-function isUpgradeOpen(){return !$("upgrade").classList.contains("hidden")}
+function isUpgradeOpen(){return !$("upgrade").classList.contains("hidden")||turretUpgradeOpen}
 
 function resetWorld(){
   enemies.length=0;
@@ -275,6 +284,9 @@ function start(isMultiplayer=false){
   spawnTimer=0;shootTimer=0;dashTimer=0;enemyId=0;shake=0;pendingLevels=0;runTime=0;gunKick=0;
   bossesDefeated=0;nextBossTime=480;bossWarningTimer=0;toastTimer=0;
   auraRadius=0;auraTimer=0;auraPulse=0;
+  turrets=[];turretCooldown=0;turretLevel=0;turretKills=0;turretKillsNeed=8;
+  turretUpgradeOpen=false;turretUpgradeChoices=[];turretVariant="basic";turretVariantUnlocked=false;
+  Object.assign(turretConfig,{damageMult:.5,fireRate:1.05,range:480,bulletSpeed:650,bulletSize:1,pierce:0,spread:0,shots:1,crit:0,life:1.4});
   Object.assign(player,{
     x:0,y:0,r:14,speed:220,damage:18,rate:.46,range:410,shots:1,
     spread:.15,magnet:75,regen:0,armor:0,crit:0,pierce:0,bulletSize:1,
@@ -300,6 +312,7 @@ function start(isMultiplayer=false){
   $("start-coop-btn").classList.add("hidden");
   $("pause").classList.add("hidden");
   $("keybinds").classList.remove("hidden");
+  $("turret-upgrades").classList.add("hidden");
   $("upgrade").classList.add("hidden");
   hideBossBar();
   ui();
@@ -362,6 +375,8 @@ function update(dt){
   runTime+=dt;
   gunKick=Math.max(0,gunKick-dt*8);
   dashTimer=Math.max(0,dashTimer-dt);
+  turretCooldown=Math.max(0,turretCooldown-dt);
+  updateTurrets(dt);
   if(player.gimmickCooldown>0)player.gimmickCooldown=Math.max(0,player.gimmickCooldown-dt);
   if(player.weapon==="flame"){
     player.heat=Math.max(0,player.heat-dt*.72);
@@ -432,6 +447,178 @@ function damageAura(){
     }
   }
   if(boss&&boss.hp<=0)defeatBoss();
+}
+
+function turretEligible(){return player.gimmick==="engineer"}
+
+function turretVariantInfo(type){
+  if(type==="flamethrower")return {name:"FLAMETHROWER",rate:.16,damage:.32,range:235,speed:470,size:5,color:"#d96a45",pierce:0,shots:1,spread:.16,life:.38};
+  if(type==="minigun")return {name:"MINIGUN",rate:.14,damage:.16,range:500,speed:760,size:3,color:"#d0a06e",pierce:0,shots:1,spread:.09,life:1.2};
+  if(type==="autocannon")return {name:"AUTOCANNON",rate:1.35,damage:1.15,range:540,speed:560,size:8,color:"#e08b55",pierce:2,shots:1,spread:.025,life:1.7};
+  return {name:"TURRET",rate:turretConfig.fireRate,damage:turretConfig.damageMult,range:turretConfig.range,speed:turretConfig.bulletSpeed,size:4*turretConfig.bulletSize,color:"#c08b63",pierce:turretConfig.pierce,shots:turretConfig.shots,spread:turretConfig.spread,life:turretConfig.life};
+}
+
+function deployTurret(type="basic"){
+  if(!turretEligible())return;
+  if(turretCooldown>0)return;
+  if(type!=="basic"&&!turretVariantUnlocked){
+    showToast("TURRET VARIANTS UNLOCK AT LEVEL 5");
+    return;
+  }
+  const info=turretVariantInfo(type);
+  const angle=Math.random()*Math.PI*2;
+  const dist=42+Math.random()*28;
+  turrets.push({
+    id:"turret-"+Date.now()+"-"+Math.random(),
+    x:player.x+Math.cos(angle)*dist,y:player.y+Math.sin(angle)*dist,
+    r:14,level:turretLevel,kills:0,killNeed:turretKillsNeed,
+    type,rate:info.rate,shotTimer:.15,flash:0,spin:0
+  });
+  turretVariant=type;
+  turretCooldown=20;
+  burst(player.x+Math.cos(angle)*dist,player.y+Math.sin(angle)*dist,14,"turret");
+  addRing(player.x+Math.cos(angle)*dist,player.y+Math.sin(angle)*dist,8,42,"turret");
+  showToast(info.name+" DEPLOYED · "+(turretCooldown|0)+"s COOLDOWN");
+}
+
+function nearestTurretTarget(t){
+  let best=null,bd=Infinity;
+  const candidates=boss?[boss,...enemies]:enemies;
+  for(const e of candidates){
+    if(!e||e.dead)continue;
+    const d=Math.hypot(e.x-t.x,e.y-t.y);
+    if(d<bd&&d<turretVariantInfo(t.type).range){bd=d;best=e}
+  }
+  return best;
+}
+
+function turretGainKill(t){
+  if(!t)return;
+  t.kills++;
+  turretKills++;
+  if(t.kills>=t.killNeed){
+    t.kills-=t.killNeed;
+    t.level++;
+    turretLevel=Math.max(turretLevel,t.level);
+    t.killNeed=Math.max(5,Math.floor(t.killNeed*1.22));
+    if(t.level>=5&&!turretVariantUnlocked){
+      turretVariantUnlocked=true;
+      showToast("TURRET VARIANTS UNLOCKED · 1 / 2 / 3");
+    }
+    openTurretUpgrade(t);
+  }
+}
+
+const turretUpgrades=[
+ {name:"Reinforced Barrels",desc:"+20% turret damage",apply:()=>turretConfig.damageMult*=1.2},
+ {name:"Rapid Cycling",desc:"Turrets fire 15% faster",apply:()=>turretConfig.fireRate=Math.max(.18,turretConfig.fireRate*.85)},
+ {name:"Long Lenses",desc:"+70 turret range",apply:()=>turretConfig.range+=70},
+ {name:"Heavy Slugs",desc:"+30% turret projectile size",apply:()=>turretConfig.bulletSize*=1.3},
+ {name:"Armor Piercers",desc:"+1 turret pierce",apply:()=>turretConfig.pierce++},
+ {name:"Twin Mount",desc:"+1 projectile per turret volley",apply:()=>turretConfig.shots++},
+ {name:"Stabilizers",desc:"-35% turret spread",apply:()=>turretConfig.spread=Math.max(.01,turretConfig.spread*.65)},
+ {name:"Overclocked Motors",desc:"+18% turret projectile speed",apply:()=>turretConfig.bulletSpeed*=1.18},
+ {name:"Extended Magazines",desc:"+20% projectile lifetime",apply:()=>turretConfig.life*=1.2},
+ {name:"Targeting Core",desc:"Turrets prioritize the closest target faster",apply:()=>turretConfig.fireRate=Math.max(.18,turretConfig.fireRate*.92)},
+ {name:"Incendiary Rounds",desc:"Turret shots gain a burning visual and +8% damage",apply:()=>turretConfig.damageMult*=1.08},
+ {name:"Siege Feed",desc:"+25% damage, -10% range",apply:()=>{turretConfig.damageMult*=1.25;turretConfig.range=Math.max(180,turretConfig.range*.9)}},
+ {name:"Scatter Core",desc:"+2 weaker projectiles per volley",apply:()=>{turretConfig.shots+=2;turretConfig.spread+=.06}},
+ {name:"Blood Calibration",desc:"+10% turret critical chance",apply:()=>turretConfig.crit+=.1},
+ {name:"Vampiric Targeting",desc:"Turret kills generate +1 extra essence pickup",apply:()=>turretConfig.life+=.08},
+ {name:"Fortified Chassis",desc:"All deployed turrets gain +6 radius",apply:()=>turrets.forEach(t=>t.r+=6)},
+ {name:"Hunter AI",desc:"+90 range and +12% projectile speed",apply:()=>{turretConfig.range+=90;turretConfig.bulletSpeed*=1.12}},
+ {name:"Execution Protocol",desc:"+25% damage to enemies below 35% health",apply:()=>turretConfig.damageMult*=1.25},
+ {name:"Machine Spirit",desc:"Turrets fire 12% faster and gain +15% projectile life",apply:()=>{turretConfig.fireRate=Math.max(.18,turretConfig.fireRate*.88);turretConfig.life*=1.15}},
+ {name:"War Machine",desc:"+35% damage, +1 pierce, +50 range",apply:()=>{turretConfig.damageMult*=1.35;turretConfig.pierce++;turretConfig.range+=50}}
+];
+
+function openTurretUpgrade(t){
+  if(!turretEligible())return;
+  const pool=[...turretUpgrades];
+  turretUpgradeChoices=[];
+  while(turretUpgradeChoices.length<3&&pool.length){
+    turretUpgradeChoices.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  }
+  turretUpgradeOpen=true;paused=true;
+  const box=$("turret-upgrades");
+  const grid=$("turret-upgrade-grid");
+  const title=$("turret-upgrade-title");
+  if(title)title.textContent="TURRET LEVEL "+t.level;
+  if(grid){
+    grid.innerHTML="";
+    turretUpgradeChoices.forEach((u,i)=>{
+      const b=document.createElement("button");
+      b.className="turret-upgrade-card";
+      b.innerHTML="<b>"+u.name+"</b><span>"+u.desc+"</span>";
+      b.onclick=()=>chooseTurretUpgrade(i);
+      grid.appendChild(b);
+    });
+  }
+  if(box)box.classList.remove("hidden");
+}
+
+function chooseTurretUpgrade(i){
+  const u=turretUpgradeChoices[i];
+  if(!u)return;
+  u.apply();
+  turretUpgradeOpen=false;
+  paused=false;
+  $("turret-upgrades").classList.add("hidden");
+  last=performance.now();
+  requestAnimationFrame(loop);
+  showToast("TURRET UPGRADED · "+u.name.toUpperCase());
+}
+
+function updateTurrets(dt){
+  if(!turrets.length)return;
+  for(const t of turrets){
+    t.shotTimer-=dt;t.flash=Math.max(0,t.flash-dt);t.spin+=dt*3;
+    if(t.shotTimer>0)continue;
+    const target=nearestTurretTarget(t);
+    if(!target)continue;
+    const info=turretVariantInfo(t.type);
+    const base=Math.atan2(target.y-t.y,target.x-t.x);
+    const count=info.shots+(t.type==="minigun"&&turretLevel>=8?1:0);
+    for(let i=0;i<count;i++){
+      const off=(i-(count-1)/2)*info.spread;
+      const angle=base+off+(Math.random()-.5)*info.spread*.25;
+      bullets.push({
+        x:t.x+Math.cos(angle)*20,y:t.y+Math.sin(angle)*20,
+        vx:Math.cos(angle)*info.speed,vy:Math.sin(angle)*info.speed,
+        r:info.size,damage:player.damage*info.damage*(t.type==="basic"?turretConfig.damageMult/.5:1),
+        life:info.life,pierce:info.pierce,hit:new Set(),explode:0,explodeDamage:0,chain:0,chainRange:0,chainDamage:0,
+        color:info.color,empowered:false,turret:t
+      });
+    }
+    t.shotTimer=info.rate;
+    t.flash=.08;
+  }
+}
+
+function drawTurrets(){
+  for(const t of turrets){
+    const info=turretVariantInfo(t.type);
+    const target=nearestTurretTarget(t);
+    const aim=target?Math.atan2(target.y-t.y,target.x-t.x):t.spin;
+    ctx.save();
+    ctx.translate(t.x,t.y);
+    ctx.shadowBlur=18;ctx.shadowColor=info.color;
+    ctx.fillStyle="#211612";ctx.beginPath();ctx.arc(0,0,t.r+4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=info.color;ctx.beginPath();ctx.arc(0,0,t.r,0,Math.PI*2);ctx.fill();
+    ctx.rotate(aim);
+    ctx.fillStyle="#39251d";
+    ctx.fillRect(0,-5,t.r+16,10);
+    ctx.fillStyle=info.color;
+    ctx.fillRect(t.r+8,-3,10,6);
+    ctx.restore();
+    ctx.save();
+    ctx.translate(t.x,t.y+t.r+8);
+    ctx.fillStyle="#160e0b";ctx.fillRect(-18,0,36,4);
+    ctx.fillStyle="#d46a45";ctx.fillRect(-18,0,36*Math.min(1,t.kills/t.killNeed),4);
+    ctx.fillStyle="#b88c6c";ctx.font="900 7px system-ui";ctx.textAlign="center";
+    ctx.fillText("LV "+t.level,0,12);
+    ctx.restore();
+  }
 }
 
 function spawnInterval(){
@@ -607,7 +794,9 @@ function updateBullets(dt){
       if(Math.hypot(b.x-e.x,b.y-e.y)<b.r+e.r){
         b.hit.add(e.id);
         let damage=b.damage;
+        if(b.turret&&b.turret.type==="basic"&&turretConfig.crit&&Math.random()<turretConfig.crit)damage*=2;
         if(e!==boss&&player.execute&&e.hp/e.max<.4)damage*=1+player.execute;
+        if(b.turret&&e!==boss&&e.hp/e.max<.35)damage*=1.25;
         e.hp-=damage;
         e.flash=.08;
         burst(b.x,b.y,3,b.empowered?"crit":"hit");
@@ -649,7 +838,10 @@ function updateBullets(dt){
 
         if(e.hp<=0){
           if(e===boss)defeatBoss();
-          else killEnemy(e);
+          else {
+            if(b.turret)turretGainKill(b.turret);
+            killEnemy(e);
+          }
         }
         if(b.hit.size>b.pierce)remove=true;
       }
@@ -1119,6 +1311,7 @@ function draw(){
   drawAura();
   for(const g of gems)drawGem(g);
   for(const e of enemies)drawEnemy(e);
+  drawTurrets();
   if(boss)drawBoss(boss);
   for(const b of enemyBullets)drawEnemyBullet(b);
   for(const b of bullets)drawBullet(b);
