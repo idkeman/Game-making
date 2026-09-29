@@ -817,7 +817,25 @@ kbd {
   box-shadow:0 0 18px #b94f3544
 }
 .keybind-panel {
-  width:min(560px,calc(100% - 28px))
+  width:min(560px,calc(100% - 28px));
+  max-height:calc(100vh - 28px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:#5a4034 #100c0a
+}
+.keybind-panel::-webkit-scrollbar {
+  width:8px
+}
+.keybind-panel::-webkit-scrollbar-track {
+  background:#100c0a
+}
+.keybind-panel::-webkit-scrollbar-thumb {
+  background:#5a4034;
+  border:2px solid #100c0a
+}
+.keybind-panel::-webkit-scrollbar-thumb:hover {
+  background:#8d513e
 }
 .keybind-list {
   display:grid;
