@@ -1,33 +1,57 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <meta name="theme-color" content="#07070d">
-  <title>Nightfall: Ten Minutes</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body>
-  <main id="game-shell">
-    <canvas id="game" aria-label="Nightfall: Ten Minutes game"></canvas>
-
-    <section id="hud" aria-live="polite">
-      <div class="topbar">
-        <div class="brand">NIGHTFALL</div>
-        <div class="stat"><span>TIME</span><b id="time">10:00</b></div>
-        <div class="stat"><span>LEVEL</span><b id="level">1</b></div>
-        <div class="stat"><span>KILLS</span><b id="kills">0</b></div>
-        <div class="stat"><span>SCORE</span><b id="score">0</b></div>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+    <meta name="theme-color" content="#07070d">
+    <title>Nightfall: Ten Minutes</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main id="game-shell">
+      <canvas id="game" aria-label="Nightfall: Ten Minutes game">
+      </canvas>
+      <section id="hud" aria-live="polite">
+        <div class="topbar">
+          <div class="brand">NIGHTFALL</div>
+          <div class="stat">
+            <span>TIME</span>
+            <b id="time">10:00</b>
+          </div>
+          <div class="stat">
+            <span>LEVEL</span>
+            <b id="level">1</b>
+          </div>
+          <div class="stat">
+            <span>KILLS</span>
+            <b id="kills">0</b>
+          </div>
+          <div class="stat">
+            <span>SCORE</span>
+            <b id="score">0</b>
+          </div>
+        </div>
+        <div class="xp">
+          <div id="xp-fill">
+          </div>
+        </div>
+        <div id="boss-bar" class="boss-bar hidden">
+          <div class="boss-label">
+            <span id="boss-name">NIGHTMARE</span>
+            <b id="boss-hp-text">0 / 0</b>
+          </div>
+          <div class="boss-track">
+            <div id="boss-fill">
+            </div>
+          </div>
+        </div>
+        <div class="lives" id="lives" aria-label="Hits remaining">HITS <span class="hit-pip filled">
+        </span>
+        <span class="hit-pip filled">
+        </span>
+        <span class="hit-pip filled">
+        </span>
       </div>
-      <div class="xp"><div id="xp-fill"></div></div>
-
-      <div id="boss-bar" class="boss-bar hidden">
-        <div class="boss-label"><span id="boss-name">NIGHTMARE</span><b id="boss-hp-text">0 / 0</b></div>
-        <div class="boss-track"><div id="boss-fill"></div></div>
-      </div>
-
-      <div class="lives" id="lives" aria-label="Hits remaining">HITS <span class="hit-pip filled"></span><span class="hit-pip filled"></span><span class="hit-pip filled"></span></div>
-
       <div class="turret-hud hidden" id="turret-hud">
         <span>TURRETS</span>
         <b id="turret-count">0 · LV 0</b>
@@ -35,17 +59,15 @@
       </div>
       <div class="dash-status" id="dash-status">DASH READY</div>
     </section>
-
     <section id="upgrade" class="hidden">
       <div class="panel">
         <p class="eyebrow">LEVEL UP</p>
         <h1>Choose your power</h1>
         <p class="subtle">The night waits. Make your choice.</p>
-        <div id="choices"></div>
+        <div id="choices">
+        </div>
       </div>
     </section>
-
-    
     <section id="character-select" class="overlay hidden">
       <div class="panel character-panel">
         <div class="character-head">
@@ -54,9 +76,14 @@
             <h1>Choose your survivor</h1>
             <p class="subtle">Every survivor changes your weapon, hit count, movement, and combat gimmick.</p>
           </div>
-          <div class="meta-wallet"><span>ESSENCE</span><b id="meta-essence">0</b><small id="meta-progress">SURVIVED 0:00</small></div>
+          <div class="meta-wallet">
+            <span>ESSENCE</span>
+            <b id="meta-essence">0</b>
+            <small id="meta-progress">SURVIVED 0:00</small>
+          </div>
         </div>
-        <div id="character-grid" class="character-grid"></div>
+        <div id="character-grid" class="character-grid">
+        </div>
         <div class="character-footer">
           <button id="character-back" class="secondary">BACK</button>
           <div id="character-status" class="character-status">SELECT A SURVIVOR</div>
@@ -64,84 +91,130 @@
         </div>
       </div>
     </section>
-
     <section id="start" class="overlay">
       <div class="panel intro">
         <p class="eyebrow">CANVAS SURVIVAL SHOOTER</p>
         <h1>NIGHTFALL</h1>
         <p>Survive the darkness for <strong>10 minutes</strong>. Aim with your mouse and hold left click to fire. Move, collect essence, stack upgrades, and survive the boss phases.</p>
         <div class="selected-character-box">
-          <div><span class="eyebrow">SELECTED SURVIVOR</span><b id="selected-character-name">THE WARDEN</b><small id="selected-character-weapon">CARBINE · 3 HITS</small></div>
+          <div>
+            <span class="eyebrow">SELECTED SURVIVOR</span>
+            <b id="selected-character-name">THE WARDEN</b>
+            <small id="selected-character-weapon">CARBINE · 3 HITS</small>
+          </div>
           <button id="character-btn" class="secondary">CHANGE SURVIVOR</button>
         </div>
-        <div class="mode-row"><button id="start-btn">SOLO NIGHT</button><button id="host-btn" class="secondary">HOST CO-OP</button></div>
-        <div class="join-row"><input id="join-code" maxlength="6" placeholder="ROOM CODE" autocomplete="off"><button id="join-btn" class="secondary">JOIN</button></div>
+        <div class="mode-row">
+          <button id="start-btn">SOLO NIGHT</button>
+          <button id="host-btn" class="secondary">HOST CO-OP</button>
+        </div>
+        <div class="join-row">
+          <input id="join-code" maxlength="6" placeholder="ROOM CODE" autocomplete="off">
+          <button id="join-btn" class="secondary">JOIN</button>
+        </div>
         <div id="meta-summary" class="meta-summary">ESSENCE 0 · LIFETIME 0:00</div>
         <div id="mp-status" class="mp-status">Solo mode · multiplayer is optional</div>
         <div id="mp-room" class="mp-room hidden">
-  <div class="room-code-box"><span>ROOM CODE</span><b id="room-code">------</b><small id="room-players">1/4 PLAYERS</small></div>
-  <div class="room-actions"><button id="copy-room-code" class="secondary">COPY CODE</button><button id="copy-invite" class="secondary">COPY INVITE</button></div>
-  <button id="start-coop-btn" class="hidden">START GAME</button>
-</div>
+          <div class="room-code-box">
+            <span>ROOM CODE</span>
+            <b id="room-code">------</b>
+            <small id="room-players">1/4 PLAYERS</small>
+          </div>
+          <div class="room-actions">
+            <button id="copy-room-code" class="secondary">COPY CODE</button>
+            <button id="copy-invite" class="secondary">COPY INVITE</button>
+          </div>
+          <button id="start-coop-btn" class="hidden">START GAME</button>
+        </div>
         <div class="controls">
-          <span><kbd>WASD</kbd> MOVE</span>
-          <span><kbd>SPACE</kbd> SHOOT</span>
-          <span><kbd>SHIFT</kbd> DASH</span>
-          <span><kbd>LEFT CLICK</kbd> SHOOT</span>
-          <span><kbd>P</kbd> PAUSE</span>
-        </div>
-      </div>
-    </section>
-
-    <section id="keybinds" class="overlay hidden">
-      <div class="panel keybind-panel">
-        <p class="eyebrow">NIGHTFALL CONTROLS</p>
-        <h1>Know your controls.</h1>
-        <div class="keybind-list">
-          <div><kbd>WASD</kbd><span>MOVE</span></div>
-          <div><kbd>LEFT CLICK</kbd><span>SHOOT</span></div>
-          <div><kbd>SPACE</kbd><span>SHOOT</span></div>
-          <div><kbd>SHIFT</kbd><span>DASH</span></div>
-          <div><kbd>F</kbd><span>AUTO-AIM ON / OFF</span></div>
-          <div><kbd>P</kbd><span>PAUSE</span></div>
-          <div><kbd>T</kbd><span>DEPLOY TURRET</span></div>
-          <div><kbd>1 / 2 / 3</kbd><span>TURRET VARIANTS</span></div>
-        </div>
-        <button id="dismiss-keybinds">BEGIN NIGHT</button>
-      </div>
-    </section>
-
-    <section id="turret-upgrades" class="overlay hidden">
-      <div class="panel turret-panel">
-        <p class="eyebrow">ENGINEER SYSTEM</p>
-        <h1 id="turret-upgrade-title">TURRET LEVEL UP</h1>
-        <p class="subtle">Choose one permanent upgrade for every turret you deploy.</p>
-        <div id="turret-upgrade-grid" class="turret-upgrade-grid"></div>
-      </div>
-    </section>
-
-    <section id="pause" class="overlay hidden">
-      <div class="panel">
-        <p class="eyebrow">NIGHT PAUSED</p>
-        <h1>Take a breath.</h1>
-        <button id="resume-btn">RESUME</button>
-        <button id="quit-btn" class="secondary">QUIT RUN</button>
-      </div>
-    </section>
-
-    <section id="end" class="overlay hidden">
-      <div class="panel">
-        <p id="end-kicker" class="eyebrow">THE NIGHT IS OVER</p>
-        <h1 id="end-title">You survived.</h1>
-        <p id="end-stats" class="subtle"></p>
-        <button id="again-btn">PLAY AGAIN</button>
-      </div>
-    </section>
-
-    <div id="toast" class="toast hidden"></div>
-  </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="game.js"></script>
-  <script src="multiplayer.js"></script>
-</body>
-</html>
+          <span>
+            <kbd>WASD</kbd> MOVE</span>
+            <span>
+              <kbd>SPACE</kbd> SHOOT</span>
+              <span>
+                <kbd>SHIFT</kbd> DASH</span>
+                <span>
+                  <kbd>LEFT CLICK</kbd> SHOOT</span>
+                  <span>
+                    <kbd>P</kbd> PAUSE</span>
+                  </div>
+                </div>
+              </section>
+              <section id="keybinds" class="overlay hidden">
+                <div class="panel keybind-panel">
+                  <p class="eyebrow">NIGHTFALL CONTROLS</p>
+                  <h1>Know your controls.</h1>
+                  <div class="keybind-list">
+                    <div>
+                      <kbd>WASD</kbd>
+                      <span>MOVE</span>
+                    </div>
+                    <div>
+                      <kbd>LEFT CLICK</kbd>
+                      <span>SHOOT</span>
+                    </div>
+                    <div>
+                      <kbd>SPACE</kbd>
+                      <span>SHOOT</span>
+                    </div>
+                    <div>
+                      <kbd>SHIFT</kbd>
+                      <span>DASH</span>
+                    </div>
+                    <div>
+                      <kbd>F</kbd>
+                      <span>AUTO-AIM ON / OFF</span>
+                    </div>
+                    <div>
+                      <kbd>P</kbd>
+                      <span>PAUSE</span>
+                    </div>
+                    <div>
+                      <kbd>T</kbd>
+                      <span>DEPLOY TURRET</span>
+                    </div>
+                    <div>
+                      <kbd>1 / 2 / 3</kbd>
+                      <span>TURRET VARIANTS</span>
+                    </div>
+                  </div>
+                  <button id="dismiss-keybinds">BEGIN NIGHT</button>
+                </div>
+              </section>
+              <section id="turret-upgrades" class="overlay hidden">
+                <div class="panel turret-panel">
+                  <p class="eyebrow">ENGINEER SYSTEM</p>
+                  <h1 id="turret-upgrade-title">TURRET LEVEL UP</h1>
+                  <p class="subtle">Choose one permanent upgrade for every turret you deploy.</p>
+                  <div id="turret-upgrade-grid" class="turret-upgrade-grid">
+                  </div>
+                </div>
+              </section>
+              <section id="pause" class="overlay hidden">
+                <div class="panel">
+                  <p class="eyebrow">NIGHT PAUSED</p>
+                  <h1>Take a breath.</h1>
+                  <button id="resume-btn">RESUME</button>
+                  <button id="quit-btn" class="secondary">QUIT RUN</button>
+                </div>
+              </section>
+              <section id="end" class="overlay hidden">
+                <div class="panel">
+                  <p id="end-kicker" class="eyebrow">THE NIGHT IS OVER</p>
+                  <h1 id="end-title">You survived.</h1>
+                  <p id="end-stats" class="subtle">
+                  </p>
+                  <button id="again-btn">PLAY AGAIN</button>
+                </div>
+              </section>
+              <div id="toast" class="toast hidden">
+              </div>
+            </main>
+            <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+            </script>
+            <script src="game.js">
+            </script>
+            <script src="multiplayer.js">
+            </script>
+          </body>
+        </html>
