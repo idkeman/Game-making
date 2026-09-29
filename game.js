@@ -592,6 +592,7 @@ function update(dt) {
   ui();
 }
 function damageAura() {
+  if(multiplayerMode&&!window.NightfallMP.isHost)return;
   const targets=boss?[boss,...enemies]:enemies;
   for(const e of [...targets]) {
     if(!e||e.dead)continue;
