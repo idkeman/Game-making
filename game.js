@@ -131,6 +131,7 @@ function resetWorld(){
 }
 
 function start(isMultiplayer=false){
+  dying=false;deathTimer=0;deathSeed=0;
   level=1;xp=0;xpNeed=10;kills=0;timeLeft=600;hits=0;score=0;multiplayerMode=isMultiplayer;
   spawnTimer=0;shootTimer=0;dashTimer=0;enemyId=0;shake=0;pendingLevels=0;runTime=0;gunKick=0;
   bossesDefeated=0;nextBossTime=480;bossWarningTimer=0;toastTimer=0;
