@@ -82,29 +82,6 @@ const characters=[
   {id:"stormcaller",name:"STORMCALLER",weapon:"Arc Rifle",weaponKind:"arc",icon:"ϟ",maxHits:3,speed:225,damage:20,rate:.50,range:500,shots:1,spread:.02,projectileSpeed:720,pierce:0,bulletSize:1,desc:"A crackling rifle whose shots leap from target to target.",gimmick:"Hits chain to up to 2 nearby enemies. Lower direct damage.",color:"#c77a58",unlockTime:600,unlockEssence:1600,cost:700}
 ];
 
-const SETTINGS_KEY="nightfall_settings_v1";
-let autoAim=false;
-try{
-  const settings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null");
-  autoAim=!!settings?.autoAim;
-}catch{}
-function saveSettings(){
-  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({autoAim}))}catch{}
-}
-function updateAutoAimUI(){
-  const btn=$("autoaim-btn");
-  if(!btn)return;
-  btn.textContent=autoAim?"AUTO-AIM: ON":"AUTO-AIM: OFF";
-  btn.classList.toggle("active",autoAim);
-  btn.setAttribute("aria-pressed",String(autoAim));
-}
-function toggleAutoAim(){
-  autoAim=!autoAim;
-  saveSettings();
-  updateAutoAimUI();
-  showToast(autoAim?"AUTO-AIM ENABLED":"AUTO-AIM DISABLED");
-}
-
 let selectedCharacterId="warden";
 let activeCharacter=characters[0];
 let meta={essence:0,totalEssence:0,playTime:0,unlocked:["warden"]};
@@ -238,6 +215,7 @@ addEventListener("keydown",e=>{
   if([" ","shift","arrowup","arrowdown","arrowleft","arrowright"].includes(key))e.preventDefault();
   if(key==="p"&&running&&!isUpgradeOpen())togglePause();
   if(e.code==="ShiftLeft"||e.code==="ShiftRight"){if(running&&!paused&&!isUpgradeOpen())tryDash();}
+  if(key==="f"&&running&&!paused&&!isUpgradeOpen())toggleAutoAim();
 });
 addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
 
@@ -263,7 +241,6 @@ addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 $("start-btn").addEventListener("click",()=>start(false));
 $("character-btn").addEventListener("click",openCharacterSelect);
 $("autoaim-btn").addEventListener("click",toggleAutoAim);
-updateAutoAimUI();
 $("character-back").addEventListener("click",closeCharacterSelect);
 $("character-confirm").addEventListener("click",closeCharacterSelect);
 updateCharacterSummary();
@@ -319,6 +296,7 @@ function start(isMultiplayer=false){
   $("end").classList.add("hidden");
   $("start-coop-btn").classList.add("hidden");
   $("pause").classList.add("hidden");
+  $("keybinds").classList.remove("hidden");
   $("upgrade").classList.add("hidden");
   hideBossBar();
   ui();
@@ -326,6 +304,14 @@ function start(isMultiplayer=false){
   requestAnimationFrame(loop);
 }
 
+let autoAim=false;
+function toggleAutoAim(){
+  autoAim=!autoAim;
+  showToast(autoAim?"AUTO-AIM ENABLED · F":"AUTO-AIM DISABLED · F");
+}
+function dismissKeybinds(){
+  $("keybinds").classList.add("hidden");
+}
 function togglePause(){
   if(!running||isUpgradeOpen())return;
   paused=!paused;
