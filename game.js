@@ -112,8 +112,12 @@ canvas.addEventListener("pointerleave",()=>{mouseDown=false;});
 addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 
 $("start-btn").addEventListener("click",()=>start(false));
-$("host-btn").addEventListener("click",async()=>{if(await window.NightfallMP.host())start(true)});
-$("join-btn").addEventListener("click",async()=>{if(await window.NightfallMP.join($("join-code").value))start(true)});
+$("host-btn").addEventListener("click",async()=>{
+  await window.NightfallMP.host();
+});
+$("join-btn").addEventListener("click",async()=>{
+  await window.NightfallMP.join($("join-code").value);
+});
 $("resume-btn").addEventListener("click",()=>togglePause());
 $("quit-btn").onclick=()=>end(false);
 $("again-btn").addEventListener("click",()=>start());
@@ -154,6 +158,7 @@ function start(isMultiplayer=false){
   }
   $("start").classList.add("hidden");
   $("end").classList.add("hidden");
+  $("start-coop-btn").classList.add("hidden");
   $("pause").classList.add("hidden");
   $("upgrade").classList.add("hidden");
   hideBossBar();
