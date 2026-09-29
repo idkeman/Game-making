@@ -67,6 +67,132 @@ const enemyTypes=[
  {name:"Bomber",r:12,hp:38,speed:64,damage:24,color:"#9b4935",xp:6}
 ];
 
+
+
+const META_KEY="nightfall_meta_v1";
+const characters=[
+  {id:"warden",name:"THE WARDEN",weapon:"Carbine",weaponKind:"rifle",icon:"▰",maxHits:3,speed:220,damage:18,rate:.46,range:410,shots:1,spread:.15,projectileSpeed:650,pierce:0,bulletSize:1,desc:"Reliable all-rounder. No gimmick, no weakness.",gimmick:"Balanced",color:"#d9c2a5",unlockTime:0,unlockEssence:0,cost:0},
+  {id:"ironclad",name:"IRONCLAD",weapon:"Scatter Cannon",weaponKind:"shotgun",icon:"◆",maxHits:5,speed:180,damage:13,rate:.78,range:330,shots:5,spread:.27,projectileSpeed:500,pierce:0,bulletSize:1.05,desc:"A walking bunker with a brutal close-range cannon.",gimmick:"Armor absorbs one hit every 8s. Slow.",color:"#b99d82",unlockTime:90,unlockEssence:100,cost:75},
+  {id:"gunslinger",name:"GUNSLINGER",weapon:"Twin Pistols",weaponKind:"twin",icon:"Ⅱ",maxHits:2,speed:245,damage:11,rate:.24,range:450,shots:2,spread:.09,projectileSpeed:780,pierce:0,bulletSize:.8,desc:"Two pistols, absurd fire rate, almost no room for mistakes.",gimmick:"Every 8 shots trims dash cooldown. Only 2 hits.",color:"#d47b58",unlockTime:180,unlockEssence:220,cost:150},
+  {id:"reaper",name:"THE REAPER",weapon:"Soul Scythe",weaponKind:"scythe",icon:"☾",maxHits:3,speed:190,damage:38,rate:.76,range:540,shots:1,spread:0,projectileSpeed:470,pierce:4,bulletSize:2.1,desc:"Launches enormous soul blades that tear through crowds.",gimmick:"18% chance to recover a hit on kill. Very slow fire.",color:"#a56d5b",unlockTime:240,unlockEssence:350,cost:200},
+  {id:"hexer",name:"THE HEXER",weapon:"Hex Orb",weaponKind:"hex",icon:"◉",maxHits:3,speed:200,damage:24,rate:.58,range:470,shots:1,spread:0,projectileSpeed:360,pierce:0,bulletSize:1.4,desc:"Slow cursed orbs detonate around anything they strike.",gimmick:"Impact explosions hit nearby enemies. Slow shots.",color:"#9f6b55",unlockTime:300,unlockEssence:500,cost:275},
+  {id:"hellbringer",name:"HELLBRINGER",weapon:"Hellfire Hose",weaponKind:"flame",icon:"♨",maxHits:4,speed:205,damage:8,rate:.08,range:240,shots:1,spread:.22,projectileSpeed:520,pierce:0,bulletSize:1.6,desc:"A short-range stream of fire that melts anything nearby.",gimmick:"Extreme fire rate and close range. Builds heat.",color:"#df7548",unlockTime:360,unlockEssence:700,cost:350},
+  {id:"huntress",name:"THE HUNTRESS",weapon:"Nailbow",weaponKind:"nail",icon:"➶",maxHits:3,speed:260,damage:28,rate:.36,range:650,shots:1,spread:.015,projectileSpeed:920,pierce:2,bulletSize:.75,desc:"Fast, precise, and built to punch through lines of enemies.",gimmick:"Every 6th shot becomes an empowered piercing shot.",color:"#c89568",unlockTime:450,unlockEssence:950,cost:450},
+  {id:"revenant",name:"THE REVENANT",weapon:"Blood Cannon",weaponKind:"blood",icon:"●",maxHits:2,speed:185,damage:40,rate:.62,range:500,shots:1,spread:0,projectileSpeed:430,pierce:1,bulletSize:2,desc:"Slow, dangerous, and almost impossible to keep down.",gimmick:"Kills have a chance to restore a lost hit. Only 2 hits.",color:"#b84f48",unlockTime:540,unlockEssence:1250,cost:550},
+  {id:"stormcaller",name:"STORMCALLER",weapon:"Arc Rifle",weaponKind:"arc",icon:"ϟ",maxHits:3,speed:225,damage:20,rate:.50,range:500,shots:1,spread:.02,projectileSpeed:720,pierce:0,bulletSize:1,desc:"A crackling rifle whose shots leap from target to target.",gimmick:"Hits chain to up to 2 nearby enemies. Lower direct damage.",color:"#c77a58",unlockTime:600,unlockEssence:1600,cost:700}
+];
+
+let selectedCharacterId="warden";
+let activeCharacter=characters[0];
+let meta={essence:0,totalEssence:0,playTime:0,unlocked:["warden"]};
+let metaSaveTimer=0;
+try{
+  const saved=JSON.parse(localStorage.getItem(META_KEY)||"null");
+  if(saved&&typeof saved==="object"){
+    meta={...meta,...saved};
+    meta.essence=Math.max(0,Number(meta.essence)||0);
+    meta.totalEssence=Math.max(meta.essence,Number(meta.totalEssence)||0);
+    meta.playTime=Math.max(0,Number(meta.playTime)||0);
+    meta.unlocked=Array.isArray(meta.unlocked)?meta.unlocked.filter(id=>characters.some(c=>c.id===id)):["warden"];
+  }
+}catch{}
+if(!meta.unlocked.includes("warden"))meta.unlocked.unshift("warden");
+
+function saveMeta(){
+  try{localStorage.setItem(META_KEY,JSON.stringify(meta))}catch{}
+}
+function formatMetaTime(seconds){
+  const total=Math.floor(Math.max(0,seconds));
+  return Math.floor(total/60)+":"+String(total%60).padStart(2,"0");
+}
+function characterEligible(c){
+  return c.id==="warden"||meta.unlocked.includes(c.id)||meta.playTime>=c.unlockTime||meta.totalEssence>=c.unlockEssence;
+}
+function isCharacterOwned(c){return c.id==="warden"||meta.unlocked.includes(c.id)}
+function unlockCharacter(c){
+  if(!characterEligible(c))return false;
+  if(isCharacterOwned(c))return true;
+  if(meta.essence<c.cost)return false;
+  meta.essence-=c.cost;
+  meta.unlocked.push(c.id);
+  saveMeta();
+  renderCharacterSelect();
+  showToast(c.name+" UNLOCKED");
+  return true;
+}
+function chooseCharacter(id){
+  const c=characters.find(x=>x.id===id);
+  if(!c||!isCharacterOwned(c))return;
+  selectedCharacterId=id;
+  activeCharacter=c;
+  updateCharacterSummary();
+  renderCharacterSelect();
+}
+function updateCharacterSummary(){
+  const c=characters.find(x=>x.id===selectedCharacterId)||characters[0];
+  activeCharacter=c;
+  const nameEl=$("selected-character-name"),weaponEl=$("selected-character-weapon"),wallet=$("meta-essence"),progress=$("meta-progress"),summary=$("meta-summary");
+  if(nameEl)nameEl.textContent=c.name;
+  if(weaponEl)weaponEl.textContent=c.weapon.toUpperCase()+" · "+c.maxHits+" HITS";
+  if(wallet)wallet.textContent=Math.floor(meta.essence).toLocaleString();
+  if(progress)progress.textContent="SURVIVED "+formatMetaTime(meta.playTime);
+  if(summary)summary.textContent="ESSENCE "+Math.floor(meta.essence).toLocaleString()+" · LIFETIME "+formatMetaTime(meta.playTime);
+}
+function openCharacterSelect(){
+  renderCharacterSelect();
+  $("start").classList.add("hidden");
+  $("character-select").classList.remove("hidden");
+}
+function closeCharacterSelect(){
+  $("character-select").classList.add("hidden");
+  $("start").classList.remove("hidden");
+  updateCharacterSummary();
+}
+function renderCharacterSelect(){
+  updateCharacterSummary();
+  const grid=$("character-grid"),status=$("character-status"),confirm=$("character-confirm");
+  if(!grid)return;
+  grid.innerHTML="";
+  for(const c of characters){
+    const owned=isCharacterOwned(c),eligible=characterEligible(c),selected=c.id===selectedCharacterId;
+    const card=document.createElement("article");
+    card.className="character-card"+(selected?" selected ":"")+(owned?"":" locked")+(eligible?"":" unavailable");
+    const req=eligible?"UNLOCK READY":"PLAY "+formatMetaTime(c.unlockTime)+" OR EARN "+c.unlockEssence+" ESSENCE";
+    const action=document.createElement("button");
+    action.className="char-action"+(owned?"":" secondary");
+    action.type="button";
+    action.textContent=owned?(selected?"SELECTED":"SELECT"):eligible?("BUY · "+c.cost+" ESSENCE"):"LOCKED";
+    action.disabled=!owned&&!eligible;
+    action.onclick=e=>{
+      e.stopPropagation();
+      if(owned)chooseCharacter(c.id);
+      else if(eligible)unlockCharacter(c);
+    };
+    card.onclick=()=>{if(owned)chooseCharacter(c.id)};
+    card.innerHTML='<div class="char-top"><div class="char-icon">'+c.icon+'</div><div><strong>'+c.name+'</strong><span>'+c.weapon.toUpperCase()+'</span></div></div>'+
+      '<div class="char-desc">'+c.desc+'</div>'+
+      '<div class="char-stats"><div class="char-stat"><span>HP</span><b>'+c.maxHits+' HITS</b></div><div class="char-stat"><span>SPEED</span><b>'+Math.round(c.speed)+'</b></div><div class="char-stat"><span>DAMAGE</span><b>'+Math.round(c.damage)+'</b></div><div class="char-stat"><span>GIMMICK</span><b>'+c.gimmick+'</b></div></div>';
+    if(!owned)card.insertAdjacentHTML("beforeend",'<div class="lock-note">'+req+(eligible?" · PURCHASE REQUIRED":"")+'</div>');
+    card.appendChild(action);
+    grid.appendChild(card);
+  }
+  const current=characters.find(c=>c.id===selectedCharacterId)||characters[0];
+  if(status)status.textContent=current.name+" · "+current.weapon+" · "+current.maxHits+" HITS";
+  if(confirm)confirm.disabled=!isCharacterOwned(current);
+}
+function applyCharacter(){
+  const c=characters.find(x=>x.id===selectedCharacterId)||characters[0];
+  activeCharacter=c;
+  maxHits=c.maxHits;
+  Object.assign(player,{
+    speed:c.speed,damage:c.damage,rate:c.rate,range:c.range,shots:c.shots,spread:c.spread,
+    projectileSpeed:c.projectileSpeed,pierce:c.pierce,bulletSize:c.bulletSize,weapon:c.weaponKind,
+    weaponName:c.weapon,color:c.color,gimmick:c.id,gimmickCooldown:0,shotCount:0,heat:0,overheated:0,
+    dashPower:c.id==="ironclad"?145:170,dashCd:c.id==="gunslinger"?2.1:2.4,
+    magnet:75,regen:0,armor:0,crit:0,execute:0,_regen:0
+  });
+}
+
 const bossTypes=[
  {name:"THE DREAD MOON",r:44,hp:1800,speed:27,damage:30,color:"#b94f61",xp:90,interval:1.8},
  {name:"THE STARVED KING",r:52,hp:3200,speed:22,damage:38,color:"#d07852",xp:140,interval:1.55}
@@ -112,6 +238,11 @@ canvas.addEventListener("pointerleave",()=>{mouseDown=false;});
 addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 
 $("start-btn").addEventListener("click",()=>start(false));
+$("character-btn").addEventListener("click",openCharacterSelect);
+$("character-back").addEventListener("click",closeCharacterSelect);
+$("character-confirm").addEventListener("click",closeCharacterSelect);
+updateCharacterSummary();
+renderCharacterSelect();
 $("host-btn").addEventListener("click",async()=>{
   await window.NightfallMP.host();
 });
@@ -120,7 +251,7 @@ $("join-btn").addEventListener("click",async()=>{
 });
 $("resume-btn").addEventListener("click",()=>togglePause());
 $("quit-btn").onclick=()=>end(false);
-$("again-btn").addEventListener("click",()=>start());
+$("again-btn").addEventListener("click",()=>start(false));
 
 function isUpgradeOpen(){return !$("upgrade").classList.contains("hidden")}
 
@@ -142,8 +273,11 @@ function start(isMultiplayer=false){
   Object.assign(player,{
     x:0,y:0,r:14,speed:220,damage:18,rate:.46,range:410,shots:1,
     spread:.15,magnet:75,regen:0,armor:0,crit:0,pierce:0,bulletSize:1,
-    dashPower:170,dashCd:2.4,invuln:0,projectileSpeed:650,execute:0,_regen:0
+    dashPower:170,dashCd:2.4,invuln:0,projectileSpeed:650,execute:0,_regen:0,
+    weapon:"rifle",weaponName:"Carbine",color:"#d9c2a5",gimmick:"warden",gimmickCooldown:0,shotCount:0,heat:0,overheated:0
   });
+  maxHits=3;
+  applyCharacter();
   resetWorld();
   running=true;paused=false;keys.clear();
   cameraX=player.x;
@@ -187,6 +321,9 @@ function loop(now){
 }
 
 function update(dt){
+  meta.playTime+=dt;
+  metaSaveTimer+=dt;
+  if(metaSaveTimer>=5){metaSaveTimer=0;saveMeta();updateCharacterSummary()}
   if(dying){
     updateDeath(dt);
     return;
@@ -206,6 +343,11 @@ function update(dt){
   runTime+=dt;
   gunKick=Math.max(0,gunKick-dt*8);
   dashTimer=Math.max(0,dashTimer-dt);
+  if(player.gimmickCooldown>0)player.gimmickCooldown=Math.max(0,player.gimmickCooldown-dt);
+  if(player.weapon==="flame"){
+    player.heat=Math.max(0,player.heat-dt*.72);
+    if(player.overheated&&player.heat<=.18)player.overheated=0;
+  }
   bossWarningTimer=Math.max(0,bossWarningTimer-dt);
   toastTimer=Math.max(0,toastTimer-dt);
 
@@ -292,6 +434,7 @@ function nearestTarget(){
 }
 
 function fire(){
+  if(player.weapon==="flame"&&player.overheated)return;
   const targetX=cameraX-W/2+mouseX;
   const targetY=cameraY-H/2+mouseY;
   const dx=targetX-player.x;
@@ -301,18 +444,63 @@ function fire(){
   const base=Math.atan2(dy,dx);
   const speed=player.projectileSpeed||650;
   gunKick=1;
+  player.shotCount=(player.shotCount||0)+1;
   burst(player.x,player.y,2,"muzzle");
 
-  for(let i=0;i<player.shots;i++){
-    const off=(i-(player.shots-1)/2)*player.spread;
-    const a=base+off+(Math.random()-.5)*.025;
+  const makeBullet=(angle,opts={})=>{
     bullets.push({
-      x:player.x+Math.cos(a)*24,y:player.y+Math.sin(a)*24,
-      vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,
-      r:4*player.bulletSize,
-      damage:player.damage*(Math.random()<player.crit?2:1),
-      life:1.3,pierce:player.pierce,hit:new Set()
+      x:player.x+Math.cos(angle)*24,y:player.y+Math.sin(angle)*24,
+      vx:Math.cos(angle)*(opts.speed||speed),vy:Math.sin(angle)*(opts.speed||speed),
+      r:opts.r||4,
+      damage:opts.damage??player.damage,
+      life:opts.life??1.3,
+      pierce:opts.pierce??player.pierce,
+      hit:new Set(),
+      explode:opts.explode||0,
+      explodeDamage:opts.explodeDamage||0,
+      chain:opts.chain||0,
+      chainRange:opts.chainRange||130,
+      chainDamage:opts.chainDamage||.55,
+      color:opts.color||null,
+      empowered:opts.empowered||false
     });
+  };
+
+  if(player.weapon==="shotgun"){
+    for(let i=0;i<5;i++){
+      const a=base+(i-2)*.15+(Math.random()-.5)*.06;
+      makeBullet(a,{damage:player.damage*.82,r:4.5,life:.75,speed:player.projectileSpeed});
+    }
+  }else if(player.weapon==="twin"){
+    makeBullet(base-.07,{damage:player.damage,r:3,life:1.1});
+    makeBullet(base+.07,{damage:player.damage,r:3,life:1.1});
+    if(player.shotCount%8===0)dashTimer=Math.max(0,dashTimer-.22);
+  }else if(player.weapon==="scythe"){
+    makeBullet(base,{damage:player.damage*2.15,r:10,life:1.05,pierce:player.pierce+4,speed:player.projectileSpeed});
+  }else if(player.weapon==="hex"){
+    makeBullet(base,{damage:player.damage*1.15,r:7,life:1.8,explode:68,explodeDamage:player.damage*.72,speed:player.projectileSpeed});
+  }else if(player.weapon==="flame"){
+    const a=base+(Math.random()-.5)*player.spread;
+    makeBullet(a,{damage:player.damage*.72,r:5.5,life:.34,speed:player.projectileSpeed});
+    player.heat=Math.min(1,player.heat+.055);
+    if(player.heat>=1){
+      player.overheated=1;
+      showToast("HELLFIRE OVERHEATED");
+    }
+  }else if(player.weapon==="nail"){
+    const empowered=player.shotCount%6===0;
+    makeBullet(base,{damage:player.damage*(empowered?2.4:1),r:3,life:1.5,pierce:player.pierce+(empowered?3:0),speed:player.projectileSpeed,empowered});
+    if(empowered)burst(player.x+Math.cos(base)*25,player.y+Math.sin(base)*25,8,"crit");
+  }else if(player.weapon==="blood"){
+    makeBullet(base,{damage:player.damage*2.15,r:8,life:1.55,pierce:player.pierce+1,speed:player.projectileSpeed});
+  }else if(player.weapon==="arc"){
+    makeBullet(base,{damage:player.damage*1.05,r:4.5,life:1.35,speed:player.projectileSpeed,chain:2,chainRange:145,chainDamage:.58,color:"#d17a55"});
+  }else{
+    for(let i=0;i<player.shots;i++){
+      const off=(i-(player.shots-1)/2)*player.spread;
+      const a=base+off+(Math.random()-.5)*.025;
+      makeBullet(a,{damage:player.damage*(Math.random()<player.crit?2:1),r:4*player.bulletSize,life:1.3,speed:speed});
+    }
   }
 }
 
@@ -374,7 +562,43 @@ function updateBullets(dt){
         if(e!==boss&&player.execute&&e.hp/e.max<.4)damage*=1+player.execute;
         e.hp-=damage;
         e.flash=.08;
-        burst(b.x,b.y,3,"hit");
+        burst(b.x,b.y,3,b.empowered?"crit":"hit");
+
+        if(b.explode&&!b.exploded){
+          b.exploded=true;
+          addRing(e.x,e.y,5,b.explode,"explosion");
+          burst(e.x,e.y,16,"explosion");
+          for(const other of enemies){
+            if(other===e||other.dead)continue;
+            const d=Math.hypot(other.x-e.x,other.y-e.y);
+            if(d<b.explode){
+              other.hp-=b.explodeDamage*(1-d/b.explode);
+              other.flash=.12;
+              if(other.hp<=0)killEnemy(other);
+            }
+          }
+        }
+
+        if(b.chain&&!b.chained){
+          b.chained=true;
+          let remaining=b.chain;
+          const nearby=enemies
+            .filter(other=>!other.dead&&other!==e)
+            .map(other=>({other,d:Math.hypot(other.x-e.x,other.y-e.y)}))
+            .filter(v=>v.d<b.chainRange)
+            .sort((a,c)=>a.d-c.d);
+          for(const hit of nearby){
+            if(remaining<=0)break;
+            const chainDamage=b.damage*b.chainDamage*(1-hit.d/b.chainRange);
+            hit.other.hp-=chainDamage;
+            hit.other.flash=.1;
+            addRing(hit.other.x,hit.other.y,2,18,"chain");
+            burst(hit.other.x,hit.other.y,3,"chain");
+            if(hit.other.hp<=0)killEnemy(hit.other);
+            remaining--;
+          }
+        }
+
         if(e.hp<=0){
           if(e===boss)defeatBoss();
           else killEnemy(e);
@@ -409,6 +633,11 @@ function killEnemy(e){
   kills++;
   score+=10+Math.floor(e.max);
   gems.push({x:e.x,y:e.y,v:e.xp,r:e.r>18?7:5});
+  if((player.gimmick==="reaper"||player.gimmick==="revenant")&&Math.random()<.18&&hits>0){
+    hits--;
+    burst(e.x,e.y,10,"soul");
+    showToast(player.gimmick==="reaper"?"SOUL HARVEST · HIT RESTORED":"BLOOD HARVEST · HIT RESTORED");
+  }
 
   // Every common enemy has its own death signature.
   if(e.kind==="Wisp"){
@@ -480,6 +709,14 @@ function defeatBoss(){
 
 function damagePlayer(amount){
   if(player.invuln>0||dying)return;
+  if(player.gimmick==="ironclad"&&player.gimmickCooldown<=0){
+    player.gimmickCooldown=8;
+    player.invuln=.45;
+    burst(player.x,player.y,18,"armor");
+    addRing(player.x,player.y,10,60,"armor");
+    showToast("IRONCLAD ARMOR ABSORBED THE HIT");
+    return;
+  }
   hits++;
   player.invuln=.65;
   shake=10;
@@ -655,7 +892,12 @@ function bossAttack(){
 }
 
 function collectXp(value){
-  xp+=value;
+  const gained=Math.max(0,Number(value)||0);
+  meta.essence+=gained;
+  meta.totalEssence+=gained;
+  xp+=gained;
+  saveMeta();
+  updateCharacterSummary();
   while(xp>=xpNeed){
     xp-=xpNeed;
     xpNeed=Math.floor(xpNeed*1.24+4);
@@ -794,6 +1036,7 @@ function ui(){
   }
 
   if(toastTimer<=0)$("toast").classList.add("hidden");
+  updateCharacterSummary();
 }
 
 function hideBossBar(){
@@ -802,6 +1045,8 @@ function hideBossBar(){
 
 function end(win){
   if(!running)return;
+  saveMeta();
+  updateCharacterSummary();
   running=false;
   paused=false;
   if(multiplayerMode)window.NightfallMP.leave();
@@ -954,7 +1199,7 @@ function drawPlayer(){
   const steps=[[-2,2],[3,-2],[-2,-2],[3,2]],step=steps[frame];
   const bob=moving?Math.sin(runTime*18)*1.2:0;
   ctx.fillStyle="#0008";ctx.beginPath();ctx.ellipse(0,12,16,7,0,0,Math.PI*2);ctx.fill();
-  ctx.shadowBlur=18;ctx.shadowColor="#d46a45";ctx.fillStyle="#d9c2a5";
+  ctx.shadowBlur=18;ctx.shadowColor=player.color||"#d46a45";ctx.fillStyle=player.color||"#d9c2a5";
   ctx.beginPath();ctx.roundRect(-9,-4+bob,18,23,7);ctx.fill();
   ctx.shadowBlur=0;ctx.fillStyle="#60493b";ctx.beginPath();ctx.roundRect(-8,1+bob,16,17,5);ctx.fill();
   ctx.fillStyle="#9a7257";ctx.fillRect(-2,3+bob,4,12);
@@ -963,12 +1208,51 @@ function drawPlayer(){
   ctx.fillStyle="#d46a45";ctx.fillRect(-4,-13+bob,8,2);
   ctx.strokeStyle="#493329";ctx.lineWidth=5;ctx.lineCap="round";ctx.beginPath();
   ctx.moveTo(-5,14+bob);ctx.lineTo(-7+step[0],23+step[1]);ctx.moveTo(5,14+bob);ctx.lineTo(7-step[0],23-step[1]);ctx.stroke();
-  ctx.save();ctx.rotate(aim);ctx.strokeStyle="#c9a985";ctx.lineWidth=5;ctx.beginPath();
+  ctx.save();
+  ctx.rotate(aim);
+  ctx.strokeStyle="#c9a985";ctx.lineWidth=5;ctx.beginPath();
   ctx.moveTo(-5,4+bob);ctx.lineTo(5,7+bob);ctx.moveTo(-5,8+bob);ctx.lineTo(5,7+bob);ctx.stroke();
-  const kick=gunKick*4;ctx.translate(-kick,0);ctx.fillStyle="#33251e";ctx.fillRect(3,4+bob,17,6);
-  ctx.fillStyle="#73503b";ctx.fillRect(10,2+bob,14,4);ctx.fillStyle="#1d120d";ctx.fillRect(21,1+bob,16,4);ctx.fillRect(5,10+bob,7,3);
-  ctx.fillStyle="#e07a4f";ctx.shadowBlur=12;ctx.shadowColor="#d46a45";ctx.fillRect(36,1+bob,3,4);
-  if(gunKick>0){ctx.fillStyle="#ffd18a";ctx.shadowBlur=18;ctx.shadowColor="#d46a45";ctx.beginPath();ctx.moveTo(39,3+bob);ctx.lineTo(49+gunKick*5,bob);ctx.lineTo(46+gunKick*4,4+bob);ctx.lineTo(49+gunKick*5,8+bob);ctx.closePath();ctx.fill();}
+
+  const kick=gunKick*4;
+  ctx.translate(-kick,0);
+  ctx.shadowBlur=10;ctx.shadowColor=player.color||"#d46a45";
+  ctx.fillStyle="#33251e";
+
+  if(player.weapon==="shotgun"){
+    ctx.fillRect(3,2+bob,30,7);ctx.fillRect(3,10+bob,30,4);
+    ctx.fillStyle="#73503b";ctx.fillRect(9,0+bob,14,4);
+  }else if(player.weapon==="twin"){
+    ctx.fillRect(2,1+bob,20,5);ctx.fillRect(2,9+bob,20,5);
+    ctx.fillStyle="#73503b";ctx.fillRect(4,-2+bob,10,4);ctx.fillRect(4,13+bob,10,4);
+  }else if(player.weapon==="scythe"){
+    ctx.strokeStyle="#c99773";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(3,7+bob);ctx.lineTo(30,7+bob);ctx.stroke();
+    ctx.strokeStyle="#dfb08b";ctx.lineWidth=3;ctx.beginPath();ctx.arc(31,7+bob,13,-1.8,.8);ctx.stroke();
+  }else if(player.weapon==="hex"){
+    ctx.fillStyle="#3b211a";ctx.fillRect(4,3+bob,27,8);
+    ctx.fillStyle="#c47b59";ctx.shadowBlur=14;ctx.beginPath();ctx.arc(33,7+bob,7,0,Math.PI*2);ctx.fill();
+  }else if(player.weapon==="flame"){
+    ctx.fillStyle="#47251c";ctx.fillRect(2,3+bob,23,11);
+    ctx.fillStyle="#9c543b";ctx.fillRect(20,1+bob,14,5);ctx.fillRect(20,10+bob,14,5);
+    ctx.fillStyle="#d96b45";ctx.fillRect(32,5+bob,10,6);
+  }else if(player.weapon==="nail"){
+    ctx.fillStyle="#3b241d";ctx.fillRect(2,5+bob,34,5);
+    ctx.fillStyle="#c7a27d";ctx.fillRect(30,6+bob,16,3);
+  }else if(player.weapon==="blood"){
+    ctx.fillStyle="#3a1b18";ctx.fillRect(3,3+bob,27,10);
+    ctx.fillStyle="#b84f48";ctx.beginPath();ctx.arc(34,8+bob,7,0,Math.PI*2);ctx.fill();
+  }else if(player.weapon==="arc"){
+    ctx.fillStyle="#32221c";ctx.fillRect(3,3+bob,31,8);
+    ctx.strokeStyle="#d47b58";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(31,2+bob);ctx.lineTo(36,7+bob);ctx.lineTo(31,12+bob);ctx.stroke();
+  }else{
+    ctx.fillRect(3,4+bob,17,6);ctx.fillStyle="#73503b";ctx.fillRect(10,2+bob,14,4);ctx.fillStyle="#1d120d";ctx.fillRect(21,1+bob,16,4);ctx.fillRect(5,10+bob,7,3);
+  }
+
+  ctx.fillStyle=player.color||"#e07a4f";ctx.shadowBlur=12;ctx.shadowColor=player.color||"#d46a45";
+  ctx.fillRect(player.weapon==="scythe"?31:36,1+bob,3,4);
+  if(gunKick>0){
+    ctx.fillStyle="#ffd18a";ctx.shadowBlur=18;ctx.shadowColor="#d46a45";
+    ctx.beginPath();ctx.moveTo(39,3+bob);ctx.lineTo(49+gunKick*5,bob);ctx.lineTo(46+gunKick*4,4+bob);ctx.lineTo(49+gunKick*5,8+bob);ctx.closePath();ctx.fill();
+  }
   ctx.restore();
   ctx.shadowBlur=10;ctx.shadowColor="#b94f35";ctx.strokeStyle="#c26a4c88";ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,5,19,0,Math.PI*2);ctx.stroke();
   ctx.restore();
