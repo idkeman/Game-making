@@ -1623,73 +1623,95 @@ function end(win) {
 }
 
 function drawMinimap() {
-  const mapCanvas = document.getElementById("minimap-canvas");
-  if (!mapCanvas) return;
+  const mapCanvas=document.getElementById("minimap-canvas");
+  if(!mapCanvas)return;
 
-  const mapCtx = mapCanvas.getContext("2d");
-  const mw = mapCanvas.width;
-  const mh = mapCanvas.height;
-  const centerX = mw / 2;
-  const centerY = mh / 2;
-  const worldRadius = 900;
-  const mapRadius = Math.min(mw, mh) * .46;
+  const mapCtx=mapCanvas.getContext("2d");
+  const mw=mapCanvas.width;
+  const mh=mapCanvas.height;
+  const centerX=mw/2;
+  const centerY=mh/2;
+  const worldRadius=900;
+  const mapRadius=Math.min(mw,mh)*.46;
+  const edgeRadius=mapRadius-9;
 
-  mapCtx.clearRect(0, 0, mw, mh);
-  mapCtx.fillStyle = "#080605";
-  mapCtx.fillRect(0, 0, mw, mh);
+  mapCtx.clearRect(0,0,mw,mh);
+  mapCtx.fillStyle="#080605";
+  mapCtx.fillRect(0,0,mw,mh);
 
   mapCtx.save();
   mapCtx.beginPath();
-  mapCtx.arc(centerX, centerY, mapRadius, 0, Math.PI * 2);
+  mapCtx.arc(centerX,centerY,mapRadius,0,Math.PI*2);
   mapCtx.clip();
 
-  mapCtx.fillStyle = "#0d0907";
-  mapCtx.fillRect(0, 0, mw, mh);
+  mapCtx.fillStyle="#0d0907";
+  mapCtx.fillRect(0,0,mw,mh);
 
-  mapCtx.strokeStyle = "#241711";
-  mapCtx.lineWidth = 1;
-  for (const scale of [.33, .66, 1]) {
+  mapCtx.strokeStyle="#241711";
+  mapCtx.lineWidth=1;
+  for(const scale of [.33,.66,1]) {
     mapCtx.beginPath();
-    mapCtx.arc(centerX, centerY, mapRadius * scale, 0, Math.PI * 2);
+    mapCtx.arc(centerX,centerY,mapRadius*scale,0,Math.PI*2);
     mapCtx.stroke();
   }
 
   mapCtx.beginPath();
-  mapCtx.moveTo(centerX - mapRadius, centerY);
-  mapCtx.lineTo(centerX + mapRadius, centerY);
-  mapCtx.moveTo(centerX, centerY - mapRadius);
-  mapCtx.lineTo(centerX, centerY + mapRadius);
+  mapCtx.moveTo(centerX-mapRadius,centerY);
+  mapCtx.lineTo(centerX+mapRadius,centerY);
+  mapCtx.moveTo(centerX,centerY-mapRadius);
+  mapCtx.lineTo(centerX,centerY+mapRadius);
   mapCtx.stroke();
 
-  const plot = (x, y, size, fill, stroke = fill, shape = "dot") => {
-    const dx = x - player.x;
-    const dy = y - player.y;
-    const distance = Math.hypot(dx, dy);
-    if (distance > worldRadius) return;
+  const plot=(x,y,size,fill,stroke=fill,shape="dot",edge=false)=>{
+    const dx=x-player.x;
+    const dy=y-player.y;
+    const distance=Math.hypot(dx,dy);
+    const scale=mapRadius/worldRadius;
+    const visible=distance<=worldRadius;
 
-    const scale = mapRadius / worldRadius;
-    const px = centerX + dx * scale;
-    const py = centerY + dy * scale;
+    if(!visible&&!edge)return;
+
+    let px=centerX+dx*scale;
+    let py=centerY+dy*scale;
+    let angle=Math.atan2(dy,dx);
+
+    if(!visible) {
+      px=centerX+Math.cos(angle)*edgeRadius;
+      py=centerY+Math.sin(angle)*edgeRadius;
+      size=Math.max(size,5);
+      shape="arrow";
+    }
 
     mapCtx.save();
-    mapCtx.shadowBlur = size > 4 ? 10 : 5;
-    mapCtx.shadowColor = fill;
-    mapCtx.fillStyle = fill;
-    mapCtx.strokeStyle = stroke;
-    mapCtx.lineWidth = 1;
+    mapCtx.shadowBlur=size>4?12:5;
+    mapCtx.shadowColor=fill;
+    mapCtx.fillStyle=fill;
+    mapCtx.strokeStyle=stroke;
+    mapCtx.lineWidth=1;
 
-    if (shape === "diamond") {
+    if(shape==="diamond") {
       mapCtx.beginPath();
-      mapCtx.moveTo(px, py - size);
-      mapCtx.lineTo(px + size, py);
-      mapCtx.lineTo(px, py + size);
-      mapCtx.lineTo(px - size, py);
+      mapCtx.moveTo(px,py-size);
+      mapCtx.lineTo(px+size,py);
+      mapCtx.lineTo(px,py+size);
+      mapCtx.lineTo(px-size,py);
+      mapCtx.closePath();
+      mapCtx.fill();
+      mapCtx.stroke();
+    } else if(shape==="arrow") {
+      mapCtx.translate(px,py);
+      mapCtx.rotate(angle);
+      mapCtx.beginPath();
+      mapCtx.moveTo(size+2,0);
+      mapCtx.lineTo(-size*.7,-size*.72);
+      mapCtx.lineTo(-size*.35,0);
+      mapCtx.lineTo(-size*.7,size*.72);
       mapCtx.closePath();
       mapCtx.fill();
       mapCtx.stroke();
     } else {
       mapCtx.beginPath();
-      mapCtx.arc(px, py, size, 0, Math.PI * 2);
+      mapCtx.arc(px,py,size,0,Math.PI*2);
       mapCtx.fill();
       mapCtx.stroke();
     }
@@ -1697,48 +1719,48 @@ function drawMinimap() {
     mapCtx.restore();
   };
 
-  for (const enemy of enemies) {
-    if (!enemy.dead) plot(enemy.x, enemy.y, enemy.r > 18 ? 3 : 2, "#b84b3f", "#5b2924");
+  for(const enemy of enemies) {
+    if(!enemy.dead)plot(enemy.x,enemy.y,enemy.r>18?3:2,"#b84b3f","#5b2924","dot",false);
   }
 
-  if (boss) {
-    plot(boss.x, boss.y, 7, "#e08b55", "#f0b078", "diamond");
+  if(boss&&!boss.dead) {
+    plot(boss.x,boss.y,7,"#e08b55","#f0b078","diamond",true);
   }
 
-  if (multiplayerMode && window.NightfallMP.getRemotePlayers) {
-    for (const friend of window.NightfallMP.getRemotePlayers()) {
-      plot(friend.x, friend.y, 4, "#d46a45", "#e2a477");
+  if(multiplayerMode&&window.NightfallMP.getRemotePlayers) {
+    for(const friend of window.NightfallMP.getRemotePlayers()) {
+      plot(friend.x,friend.y,4,"#d46a45","#e2a477","dot",true);
     }
   }
 
   mapCtx.restore();
 
   mapCtx.save();
-  mapCtx.shadowBlur = 10;
-  mapCtx.shadowColor = "#e2c8a5";
-  mapCtx.fillStyle = "#e2c8a5";
-  mapCtx.strokeStyle = "#5b4638";
-  mapCtx.lineWidth = 1;
+  mapCtx.shadowBlur=10;
+  mapCtx.shadowColor="#e2c8a5";
+  mapCtx.fillStyle="#e2c8a5";
+  mapCtx.strokeStyle="#5b4638";
+  mapCtx.lineWidth=1;
   mapCtx.beginPath();
-  mapCtx.moveTo(centerX, centerY - 7);
-  mapCtx.lineTo(centerX + 5, centerY + 5);
-  mapCtx.lineTo(centerX, centerY + 2);
-  mapCtx.lineTo(centerX - 5, centerY + 5);
+  mapCtx.moveTo(centerX,centerY-7);
+  mapCtx.lineTo(centerX+5,centerY+5);
+  mapCtx.lineTo(centerX,centerY+2);
+  mapCtx.lineTo(centerX-5,centerY+5);
   mapCtx.closePath();
   mapCtx.fill();
   mapCtx.stroke();
   mapCtx.restore();
 
-  mapCtx.strokeStyle = "#4b342d";
-  mapCtx.lineWidth = 1;
+  mapCtx.strokeStyle="#4b342d";
+  mapCtx.lineWidth=1;
   mapCtx.beginPath();
-  mapCtx.arc(centerX, centerY, mapRadius, 0, Math.PI * 2);
+  mapCtx.arc(centerX,centerY,mapRadius,0,Math.PI*2);
   mapCtx.stroke();
 
-  mapCtx.fillStyle = "#8f6d59";
-  mapCtx.font = "900 7px system-ui, sans-serif";
-  mapCtx.textAlign = "center";
-  mapCtx.fillText("N", centerX, 9);
+  mapCtx.fillStyle="#8f6d59";
+  mapCtx.font="900 7px system-ui,sans-serif";
+  mapCtx.textAlign="center";
+  mapCtx.fillText("N",centerX,9);
 }
 
 function draw() {
