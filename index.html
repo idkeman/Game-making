@@ -40,13 +40,38 @@
       </div>
     </section>
 
+    
+    <section id="character-select" class="overlay hidden">
+      <div class="panel character-panel">
+        <div class="character-head">
+          <div>
+            <p class="eyebrow">SURVIVOR ARMORY</p>
+            <h1>Choose your survivor</h1>
+            <p class="subtle">Every survivor changes your weapon, hit count, movement, and combat gimmick.</p>
+          </div>
+          <div class="meta-wallet"><span>ESSENCE</span><b id="meta-essence">0</b><small id="meta-progress">SURVIVED 0:00</small></div>
+        </div>
+        <div id="character-grid" class="character-grid"></div>
+        <div class="character-footer">
+          <button id="character-back" class="secondary">BACK</button>
+          <div id="character-status" class="character-status">SELECT A SURVIVOR</div>
+          <button id="character-confirm">USE SELECTED</button>
+        </div>
+      </div>
+    </section>
+
     <section id="start" class="overlay">
       <div class="panel intro">
         <p class="eyebrow">CANVAS SURVIVAL SHOOTER</p>
         <h1>NIGHTFALL</h1>
         <p>Survive the darkness for <strong>10 minutes</strong>. Aim with your mouse and hold left click to fire. Move, collect essence, stack upgrades, and survive the boss phases.</p>
+        <div class="selected-character-box">
+          <div><span class="eyebrow">SELECTED SURVIVOR</span><b id="selected-character-name">THE WARDEN</b><small id="selected-character-weapon">CARBINE · 3 HITS</small></div>
+          <button id="character-btn" class="secondary">CHANGE SURVIVOR</button>
+        </div>
         <div class="mode-row"><button id="start-btn">SOLO NIGHT</button><button id="host-btn" class="secondary">HOST CO-OP</button></div>
         <div class="join-row"><input id="join-code" maxlength="6" placeholder="ROOM CODE" autocomplete="off"><button id="join-btn" class="secondary">JOIN</button></div>
+        <div id="meta-summary" class="meta-summary">ESSENCE 0 · LIFETIME 0:00</div>
         <div id="mp-status" class="mp-status">Solo mode · multiplayer is optional</div>
         <div id="mp-room" class="mp-room hidden">
   <div class="room-code-box"><span>ROOM CODE</span><b id="room-code">------</b><small id="room-players">1/4 PLAYERS</small></div>
