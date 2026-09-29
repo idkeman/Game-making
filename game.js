@@ -1167,6 +1167,14 @@ function drawBackground(){
 
 
 
+function getAimPoint(){
+  if(autoAim){
+    const target=nearestTarget();
+    if(target)return {x:target.x,y:target.y};
+  }
+  return {x:cameraX-W/2+mouseX,y:cameraY-H/2+mouseY};
+}
+
 function drawPlayer(){
   ctx.save();
   ctx.translate(player.x,player.y);
@@ -1213,7 +1221,8 @@ function drawPlayer(){
   }
 
   if(player.invuln>0&&Math.floor(player.invuln*30)%2===0)ctx.globalAlpha=.45;
-  const aim=Math.atan2((cameraY-H/2+mouseY)-player.y,(cameraX-W/2+mouseX)-player.x);
+  const aimPoint=getAimPoint();
+  const aim=Math.atan2(aimPoint.y-player.y,aimPoint.x-player.x);
   const moving=keys.has("w")||keys.has("a")||keys.has("s")||keys.has("d")||keys.has("arrowup")||keys.has("arrowleft")||keys.has("arrowdown")||keys.has("arrowright");
   const frame=moving?Math.floor(runTime*10)%4:0;
   const steps=[[-2,2],[3,-2],[-2,-2],[3,2]],step=steps[frame];
