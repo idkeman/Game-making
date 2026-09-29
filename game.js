@@ -141,7 +141,7 @@ function start(isMultiplayer=false){
   mouseY=H/2;
   mouseDown=false;
   if(multiplayerMode){
-    $("mp-status").textContent=window.NightfallMP.host?"HOST CO-OP · waiting for players":"CO-OP · connected";
+    $("mp-status").textContent=window.NightfallMP.isHost?"HOST CO-OP · waiting for players":"CO-OP · connected";
   }else{
     $("mp-status").textContent="Solo mode · multiplayer is optional";
   }
