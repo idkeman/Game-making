@@ -62,7 +62,8 @@ const enemyTypes=[
  {name:"Ghoul",r:12,hp:30,speed:70,damage:9,color:"#765044",xp:3},
  {name:"Leaper",r:11,hp:34,speed:54,damage:14,color:"#8a4d38",xp:4},
  {name:"Spitter",r:13,hp:42,speed:38,damage:10,color:"#6f4b38",xp:5},
- {name:"Crawler",r:9,hp:20,speed:102,damage:8,color:"#6d3d35",xp:2}
+ {name:"Crawler",r:9,hp:20,speed:102,damage:8,color:"#6d3d35",xp:2},
+ {name:"Bomber",r:12,hp:38,speed:64,damage:24,color:"#9b4935",xp:6}
 ];
 
 const bossTypes=[
@@ -310,7 +311,7 @@ function spawnEnemy(){
   let x=player.x+Math.cos(angle)*distance;
   let y=player.y+Math.sin(angle)*distance;
   const elapsed=600-timeLeft;
-  const available=elapsed<35?4:elapsed<90?6:8;
+  const available=elapsed<35?4:elapsed<90?6:elapsed<150?8:9;
   const type=enemyTypes[Math.floor(Math.random()*available)];
   const scale=difficulty();
   enemies.push({
@@ -397,8 +398,59 @@ function killEnemy(e){
   kills++;
   score+=10+Math.floor(e.max);
   gems.push({x:e.x,y:e.y,v:e.xp,r:e.r>18?7:5});
-  burst(e.x,e.y,e.r>18?13:7,"kill");
-  addRing(e.x,e.y,4,e.r*2,"kill");
+
+  // Every common enemy has its own death signature.
+  if(e.kind==="Wisp"){
+    burst(e.x,e.y,18,"wispDeath");
+    addRing(e.x,e.y,3,42,"wispDeath");
+  }else if(e.kind==="Stalker"){
+    burst(e.x,e.y,9,"stalkerDeath");
+    addRing(e.x,e.y,6,30,"stalkerDeath");
+    for(let i=0;i<3;i++)gems.push({x:e.x+(Math.random()-.5)*24,y:e.y+(Math.random()-.5)*24,v:1,r:3});
+  }else if(e.kind==="Swift"){
+    burst(e.x,e.y,22,"swiftDeath");
+    for(let i=0;i<4;i++)addRing(e.x,e.y,2+i*3,12+i*7,"swiftDeath");
+  }else if(e.kind==="Brute"){
+    burst(e.x,e.y,30,"bruteDeath");
+    addRing(e.x,e.y,8,75,"bruteDeath");
+    shake=Math.max(shake,8);
+  }else if(e.kind==="Ghoul"){
+    burst(e.x,e.y,15,"ghoulDeath");
+    addRing(e.x,e.y,4,48,"ghoulDeath");
+    // Ghouls leave behind a small essence cache.
+    for(let i=0;i<2;i++)gems.push({x:e.x+(Math.random()-.5)*18,y:e.y+(Math.random()-.5)*18,v:2,r:4});
+  }else if(e.kind==="Leaper"){
+    burst(e.x,e.y,24,"leaperDeath");
+    addRing(e.x,e.y,3,58,"leaperDeath");
+    shake=Math.max(shake,4);
+  }else if(e.kind==="Spitter"){
+    burst(e.x,e.y,16,"spitterDeath");
+    addRing(e.x,e.y,5,52,"spitterDeath");
+    for(let i=0;i<5;i++){
+      const a=Math.random()*Math.PI*2;
+      enemyBullets.push({x:e.x,y:e.y,vx:Math.cos(a)*70,vy:Math.sin(a)*70,r:3,damage:6,life:.8});
+    }
+  }else if(e.kind==="Crawler"){
+    burst(e.x,e.y,28,"crawlerDeath");
+    addRing(e.x,e.y,2,35,"crawlerDeath");
+  }else if(e.kind==="Bomber"){
+    const radius=92;
+    burst(e.x,e.y,42,"explosion");
+    addRing(e.x,e.y,8,radius,"explosion");
+    shake=Math.max(shake,16);
+    if(player.invuln<=0&&Math.hypot(player.x-e.x,player.y-e.y)<radius){
+      damagePlayer(1);
+    }
+    for(const other of enemies){
+      if(other.dead)continue;
+      const d=Math.hypot(other.x-e.x,other.y-e.y);
+      if(d<radius){
+        other.hp-=55*(1-d/radius);
+        other.flash=.15;
+        if(other.hp<=0)killEnemy(other);
+      }
+    }
+  }
 }
 
 function defeatBoss(){
@@ -898,6 +950,17 @@ function drawEnemy(e){
     ctx.fillStyle="#d85b43";ctx.beginPath();ctx.ellipse(e.r*.65,0,e.r*.3,e.r*.18,0,0,Math.PI*2);ctx.fill();
     if(e.attackTimer<.35){ctx.shadowBlur=18;ctx.shadowColor="#d85b43";ctx.fillStyle="#e87a52";ctx.beginPath();ctx.arc(e.r*.72,0,e.r*.12,0,Math.PI*2);ctx.fill();}
 
+  }else if(e.kind==="Bomber"){
+    const swell=1+Math.sin(t*7)*.08;
+    ctx.scale(swell,swell);
+    ctx.beginPath();ctx.arc(0,0,e.r,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#d96a45";ctx.beginPath();ctx.arc(0,0,e.r*.42,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#2a100d";
+    ctx.beginPath();ctx.arc(-e.r*.22,-e.r*.18,e.r*.1,0,Math.PI*2);ctx.arc(e.r*.22,-e.r*.18,e.r*.1,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="#d96a45";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(0,-e.r*.8);ctx.lineTo(e.r*.45,-e.r*1.15);ctx.stroke();
+    ctx.fillStyle="#f2a15f";ctx.shadowBlur=10;ctx.shadowColor="#e06b45";
+    ctx.beginPath();ctx.arc(e.r*.5,-e.r*1.2,e.r*.13,0,Math.PI*2);ctx.fill();
   }else{
     const skitter=Math.sin(t*18)*e.r*.12;
     ctx.translate(0,skitter);
@@ -925,7 +988,35 @@ function drawEnemyBullet(b){
   ctx.save();ctx.shadowBlur=12;ctx.shadowColor="#e36d72";ctx.fillStyle="#d86b4c";ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();ctx.restore();
 }
 function drawParticles(){
-  for(const p of particles){ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,p.life));ctx.fillStyle=p.type==="damage"?"#c95746":p.type==="boss"?"#b84b3f":"#d46a45";ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.restore();}
+  for(const p of particles){
+    ctx.save();
+    ctx.globalAlpha=Math.max(0,Math.min(1,p.life));
+    const type=p.type;
+    if(type==="explosion"){
+      ctx.fillStyle=p.life>.45?"#ffb15c":"#d84b35";
+      ctx.shadowBlur=14;ctx.shadowColor="#e0643f";
+    }else if(type==="wispDeath"){
+      ctx.fillStyle="#c98b9b";
+    }else if(type==="stalkerDeath"){
+      ctx.fillStyle="#7b5547";
+    }else if(type==="swiftDeath"){
+      ctx.fillStyle="#e08b55";
+    }else if(type==="bruteDeath"){
+      ctx.fillStyle="#a44b38";
+    }else if(type==="ghoulDeath"){
+      ctx.fillStyle="#9f705d";
+    }else if(type==="leaperDeath"){
+      ctx.fillStyle="#d35d43";
+    }else if(type==="spitterDeath"){
+      ctx.fillStyle="#9b6b42";
+    }else if(type==="crawlerDeath"){
+      ctx.fillStyle="#bd493b";
+    }else{
+      ctx.fillStyle=type==="damage"?"#c95746":type==="boss"?"#b84b3f":"#d46a45";
+    }
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size*(type==="explosion"?1.4:1),0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
 }
 function drawVignette(){
   const g=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.25,W/2,H/2,Math.max(W,H)*.72);g.addColorStop(0,"#0000");g.addColorStop(.72,"#0002");g.addColorStop(1,"#000b");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
