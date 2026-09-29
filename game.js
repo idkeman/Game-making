@@ -1552,6 +1552,126 @@ function end(win) {
   $("end-title").textContent=win?"You survived the night.":"You were swallowed by the night.";
   $("end-stats").textContent="Level "+level+" · "+kills+" enemies defeated · "+bossesDefeated+" bosses defeated · "+score.toLocaleString()+" essence";
 }
+
+function drawMinimap() {
+  const mapCanvas = document.getElementById("minimap-canvas");
+  if (!mapCanvas) return;
+
+  const mapCtx = mapCanvas.getContext("2d");
+  const mw = mapCanvas.width;
+  const mh = mapCanvas.height;
+  const centerX = mw / 2;
+  const centerY = mh / 2;
+  const worldRadius = 900;
+  const mapRadius = Math.min(mw, mh) * .46;
+
+  mapCtx.clearRect(0, 0, mw, mh);
+  mapCtx.fillStyle = "#080605";
+  mapCtx.fillRect(0, 0, mw, mh);
+
+  mapCtx.save();
+  mapCtx.beginPath();
+  mapCtx.arc(centerX, centerY, mapRadius, 0, Math.PI * 2);
+  mapCtx.clip();
+
+  mapCtx.fillStyle = "#0d0907";
+  mapCtx.fillRect(0, 0, mw, mh);
+
+  mapCtx.strokeStyle = "#241711";
+  mapCtx.lineWidth = 1;
+  for (const scale of [.33, .66, 1]) {
+    mapCtx.beginPath();
+    mapCtx.arc(centerX, centerY, mapRadius * scale, 0, Math.PI * 2);
+    mapCtx.stroke();
+  }
+
+  mapCtx.beginPath();
+  mapCtx.moveTo(centerX - mapRadius, centerY);
+  mapCtx.lineTo(centerX + mapRadius, centerY);
+  mapCtx.moveTo(centerX, centerY - mapRadius);
+  mapCtx.lineTo(centerX, centerY + mapRadius);
+  mapCtx.stroke();
+
+  const plot = (x, y, size, fill, stroke = fill, shape = "dot") => {
+    const dx = x - player.x;
+    const dy = y - player.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > worldRadius) return;
+
+    const scale = mapRadius / worldRadius;
+    const px = centerX + dx * scale;
+    const py = centerY + dy * scale;
+
+    mapCtx.save();
+    mapCtx.shadowBlur = size > 4 ? 10 : 5;
+    mapCtx.shadowColor = fill;
+    mapCtx.fillStyle = fill;
+    mapCtx.strokeStyle = stroke;
+    mapCtx.lineWidth = 1;
+
+    if (shape === "diamond") {
+      mapCtx.beginPath();
+      mapCtx.moveTo(px, py - size);
+      mapCtx.lineTo(px + size, py);
+      mapCtx.lineTo(px, py + size);
+      mapCtx.lineTo(px - size, py);
+      mapCtx.closePath();
+      mapCtx.fill();
+      mapCtx.stroke();
+    } else {
+      mapCtx.beginPath();
+      mapCtx.arc(px, py, size, 0, Math.PI * 2);
+      mapCtx.fill();
+      mapCtx.stroke();
+    }
+
+    mapCtx.restore();
+  };
+
+  for (const enemy of enemies) {
+    if (!enemy.dead) plot(enemy.x, enemy.y, enemy.r > 18 ? 3 : 2, "#b84b3f", "#5b2924");
+  }
+
+  if (boss) {
+    plot(boss.x, boss.y, 7, "#e08b55", "#f0b078", "diamond");
+  }
+
+  if (multiplayerMode && window.NightfallMP.getRemotePlayers) {
+    for (const friend of window.NightfallMP.getRemotePlayers()) {
+      plot(friend.x, friend.y, 4, "#d46a45", "#e2a477");
+    }
+  }
+
+  mapCtx.restore();
+
+  mapCtx.save();
+  mapCtx.shadowBlur = 10;
+  mapCtx.shadowColor = "#e2c8a5";
+  mapCtx.fillStyle = "#e2c8a5";
+  mapCtx.strokeStyle = "#5b4638";
+  mapCtx.lineWidth = 1;
+  mapCtx.beginPath();
+  mapCtx.moveTo(centerX, centerY - 7);
+  mapCtx.lineTo(centerX + 5, centerY + 5);
+  mapCtx.lineTo(centerX, centerY + 2);
+  mapCtx.lineTo(centerX - 5, centerY + 5);
+  mapCtx.closePath();
+  mapCtx.fill();
+  mapCtx.stroke();
+  mapCtx.restore();
+
+  mapCtx.strokeStyle = "#4b342d";
+  mapCtx.lineWidth = 1;
+  mapCtx.beginPath();
+  mapCtx.arc(centerX, centerY, mapRadius, 0, Math.PI * 2);
+  mapCtx.stroke();
+
+  mapCtx.fillStyle = "#8f6d59";
+  mapCtx.font = "900 7px system-ui, sans-serif";
+  mapCtx.textAlign = "center";
+  mapCtx.fillText("N", centerX, 9);
+}
+
 function draw() {
   ctx.save();
   const sx=(Math.random()-.5)*shake;
@@ -1574,6 +1694,7 @@ function draw() {
   ctx.restore();
   ctx.restore();
   drawVignette();
+  drawMinimap();
 }
 function worldNoise(x,y) {
   const n=Math.sin(x*127.1+y*311.7)*43758.5453123;
