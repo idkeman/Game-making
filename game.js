@@ -7,6 +7,7 @@ let level=1,xp=0,xpNeed=10,kills=0,timeLeft=600,hp=100,maxHp=100,score=0,hits=0,
 let auraRadius=0,auraTimer=0,auraPulse=0;
 let turrets=[],turretCooldown=0,turretLevel=0,turretKills=0,turretKillsNeed=8;
 let turretUpgradeOpen=false,turretUpgradeChoices=[];
+let usedCharacterUpgrades=new Set();
 let turretVariant="basic",turretVariantUnlocked=false;
 const turretConfig={damageMult:.5,fireRate:1.05,range:480,bulletSpeed:650,bulletSize:1,pierce:0,spread:0,shots:1,crit:0,life:1.4,bonusEssence:0};
 const turretOwnedUpgrades=new Set();
@@ -43,24 +44,101 @@ const player={
   invuln:0
 };
 
-const upgrades=[
- {icon:"✦",name:"Moonlit Edge",desc:"+7 weapon damage",apply:()=>player.damage+=7},
- {icon:"◈",name:"Quick Hands",desc:"Fire 18% faster",apply:()=>player.rate=Math.max(.12,player.rate*.82)},
- {icon:"✧",name:"Split Shot",desc:"+1 projectile per volley",apply:()=>player.shots++},
- {icon:"◇",name:"Fleetfoot",desc:"+12% movement speed",apply:()=>player.speed*=1.12},
- {icon:"◎",name:"Second Wind",desc:"Recover one spent hit",apply:()=>{hits=Math.max(0,hits-1)}},
- {icon:"⊙",name:"Long Sight",desc:"+80 attack range",apply:()=>player.range+=80},
- {icon:"❖",name:"Essence Magnet",desc:"+55 pickup radius",apply:()=>player.magnet+=55},
- {icon:"†",name:"Iron Will",desc:"Recover one spent hit",apply:()=>{hits=Math.max(0,hits-1)}},
- {icon:"✹",name:"Piercing Star",desc:"Projectiles pierce +1 enemy",apply:()=>player.pierce++},
- {icon:"☄",name:"Critical Night",desc:"+8% critical strike chance",apply:()=>player.crit+=.08},
- {icon:"⌁",name:"Dash Core",desc:"Dash cooldown reduced by 20%",apply:()=>player.dashCd=Math.max(.55,player.dashCd*.8)},
- {icon:"✺",name:"Heavy Rounds",desc:"+25% projectile size and +2 damage",apply:()=>{player.bulletSize*=1.25;player.damage+=2}},
- {icon:"♥",name:"Sanguine Pact",desc:"Heal 8% of max health",apply:()=>hp=Math.min(maxHp,hp+maxHp*.08)},
- {icon:"☀",name:"Solar Core",desc:"+12% projectile speed and +15 range",apply:()=>{player.projectileSpeed=(player.projectileSpeed||650)*1.12;player.range+=15}},
- {icon:"◉",name:"Blood Radius",desc:"Create a damaging aura that deals 25% of enemy max health. +35 radius per upgrade.",apply:()=>{auraRadius=Math.min(260,auraRadius+70);auraTimer=0}},
- {icon:"⚔",name:"Executioner",desc:"+15% damage against enemies below 40% HP",apply:()=>player.execute=(player.execute||0)+.15}
-];
+const characterUpgradeBlueprints={
+  warden:{
+    names:["Carbine Tuning","Brass Receivers","Measured Burst","Steady Hands","Long Barrel","Combat Drills","Balanced Feed","Rifleman","Clean Sights","Hardcast Rounds","Recoil Bracing","Tactical Mag","Deadeye","Hot Jacket","Kinetic Tips","Rapid Chamber","Field Stripping","Hunter Optics","Armor Breaker","Overpressure","Execution Burst","Battle Focus","Sustained Fire","Marksman","Muzzle Flash","Lead Storm","Veteran Aim","War Load","Final Magazine","Last Stand"],
+    prefix:"CARBINE"
+  },
+  ironclad:{
+    names:["Shell Loading","Fortified Receiver","Buckshot Core","Iron Buck","Close Quarters","Plate Training","Dense Slugs","Breach Pattern","Reinforced Feed","Heavy Shells","Scatter Mastery","Impact Frame","Armor Plating","Brutal Spread","Siege Grip","Concussive Shot","Steel Chamber","Point Blank","Juggernaut","Blast Radius","Hardpoint","Bunker Drill","Crushing Load","Fortress Core","Cannon Breach","Titan Shell","Iron Rain","War Plate","Last Bastion","Unbreakable"],
+    prefix:"SCATTER CANNON"
+  },
+  gunslinger:{
+    names:["Quick Draw","Twin Loaders","Double Tap","Pistol Rhythm","Fast Fingers","Crossfire","Twin Barrels","Snap Aim","Hot Chambers","Ricochet Brass","Trigger Discipline","Dual Magazines","Deadeye Pair","Lead Dance","Rapid Twins","Killer Tempo","Split Trigger","Sidearm Storm","Velocity Drills","Point Shooter","Fan Fire","Six Shooter","Gun Kata","Twin Execution","Smoke Trail","Merciless Hands","Double Impact","Overclocked Triggers","Last Round","Two-Gun Fury"],
+    prefix:"TWIN PISTOLS"
+  },
+  reaper:{
+    names:["Soul Edge","Grave Reach","Wraith Blade","Reaping Arc","Black Harvest","Phantom Steel","Cursed Edge","Long Reaper","Soul Weight","Death Sweep","Grim Momentum","Abyssal Blade","Spectral Reach","Harvest Mastery","Cold Grave","Execution Scythe","Void Crescent","Reaper's Pace","Death Mark","Soul Rend","Dread Swing","Phantom Cleave","Mourning Star","Final Harvest","Bloodless Cut","Grave Pressure","Night Reaping","King's Scythe","Soulstorm","Death Incarnate"],
+    prefix:"SOUL SCYTHE"
+  },
+  hexer:{
+    names:["Hex Spark","Cursed Orb","Malison Core","Doom Radius","Witchfire","Hex Velocity","Curse Weight","Dark Detonation","Orb Mastery","Coven Focus","Rotating Curse","Black Sigil","Spell Impact","Doom Echo","Grave Orb","Hex Saturation","Cursed Reach","Witch's Aim","Soul Bomb","Malefic Core","Chain Malison","Dread Pulse","Abyss Orb","Curse Engine","Hex Collapse","Forbidden Charge","Doom Spiral","Night Sigil","Final Curse","Cataclysm Hex"],
+    prefix:"HEX ORB"
+  },
+  hellbringer:{
+    names:["Fuel Pressure","Hellfire Nozzle","Inferno Stream","Burning Core","Napalm Feed","Heat Control","Flame Reach","Firestorm","Scorching Jets","Furnace Heart","Blaze Flow","Cinder Spray","Thermal Barrel","Wildfire","Molten Feed","Infernal Pressure","Flashburn","Ember Engine","Incinerator","Hellstorm","Ash Trail","Overheat Mastery","Flame Wall","Furnace Burst","Magma Jet","Pyre Core","Burning Rain","Inferno Drive","Worldfire","Apocalypse Flame"],
+    prefix:"HELLFIRE HOSE"
+  },
+  huntress:{
+    names:["Nailcraft","Barbed Nails","Hunter's Draw","Piercing Fletching","Longbow Frame","Quick Drawstring","Predator Sight","Deep Wound","Razor Nails","Hunt Rhythm","Perfect Tension","Broadhead","Falcon Eye","Blood Trail","Keen Fletching","Swift Draw","Armor Pierce","Silent Shot","Execution Nail","Hunter's Mark","Deadly Volley","Beast Slayer","True Aim","Rain of Nails","Warbow","Savage Fletching","Predator Core","Final Hunt","Moonlit Nail","Apex Hunter"],
+    prefix:"NAILBOW"
+  },
+  revenant:{
+    names:["Blood Chamber","Sanguine Core","Crimson Shot","Leeching Round","Blood Pressure","Grave Cannon","Vital Shell","Hemorrhage","Red Harvest","Death Vessel","Blood Surge","Scarlet Feed","Vampiric Aim","Coagulated Core","Crimson Pierce","Bloodstorm","Revenant Force","Mortal Siphon","Feral Pulse","Blood Debt","Dark Transfusion","Gore Chamber","Crimson Execution","Living Weapon","Bloodwake","Death Drinker","Scarlet Recoil","Red Eclipse","Final Feast","Undying Cannon"],
+    prefix:"BLOOD CANNON"
+  },
+  stormcaller:{
+    names:["Arc Capacitor","Storm Coil","Chain Voltage","Static Core","Thunder Feed","Arc Reach","Lightning Rod","Conductive Shot","Storm Rhythm","Overcharge","Tesla Frame","Voltage Surge","Chain Mastery","Shockwave","Ion Barrel","Thunderhead","Arc Precision","Static Field","Forked Bolt","Storm Engine","Electric Crown","High Voltage","Thunder Pierce","Chain Reaction","Tempest Core","Arc Cascade","Lightning Rain","Storm Breaker","World Spark","Final Thunder"],
+    prefix:"ARC RIFLE"
+  },
+  engineer:{
+    names:["Builder's Grip","Servo Aim","Copper Wiring","Targeting Servo","Spare Parts","Reinforced Mount","Ammo Conveyor","Gunmetal Core","Repair Drone","Builder's Focus","Sentry Logic","Heavy Mount","Machine Sight","Combat Servos","Rapid Assembly","War Protocol","Target Lock","Factory Feed","Overclocked Servos","Steel Network","Kill Processor","Siege Programming","Machine Precision","Battle Foundry","Sentry Swarm","Industrial Core","Turret Doctrine","Automated Warfare","Master Engineer","Iron Factory"],
+    prefix:"ENGINEER"
+  }
+};
+
+function buildCharacterUpgrades(id){
+  const c=characters.find(x=>x.id===id)||characters[0];
+  const names=characterUpgradeBlueprints[id]?.names||characterUpgradeBlueprints.warden.names;
+  const prefix=characterUpgradeBlueprints[id]?.prefix||c.weapon;
+  const effects=[
+    ()=>player.damage+=5,()=>player.rate=Math.max(.06,player.rate*.9),()=>player.range+=45,
+    ()=>player.projectileSpeed*=1.1,()=>player.shots++,()=>player.pierce++,()=>player.bulletSize*=1.15,
+    ()=>player.speed*=1.08,()=>player.dashCd=Math.max(.45,player.dashCd*.9),()=>player.magnet+=35,
+    ()=>player.crit+=.06,()=>player.execute=(player.execute||0)+.12,
+    ()=>player.spread=Math.max(.005,player.spread*.86),()=>player.damage+=10,
+    ()=>player.range+=80,()=>player.projectileSpeed*=1.16,()=>player.rate=Math.max(.05,player.rate*.86),
+    ()=>{hits=Math.max(0,hits-1)},()=>player.pierce+=2,()=>player.bulletSize*=1.25,
+    ()=>player.damage+=8,()=>player.shots++,()=>player.speed*=1.12,()=>player.dashCd=Math.max(.4,player.dashCd*.82),
+    ()=>player.crit+=.1,()=>player.range+=100,()=>player.projectileSpeed*=1.2,
+    ()=>player.damage+=14,()=>player.rate=Math.max(.045,player.rate*.82),()=>player.pierce++
+  ];
+  return names.map((name,i)=>({
+    icon:["✦","◈","✧","◇","◎","⊙","❖","†","✹","☄","⌁","✺","♥","☀","◉","⚔"][i%16],
+    name,
+    desc:characterUpgradeDescription(c,i),
+    apply:effects[i]
+  }));
+}
+
+function characterUpgradeDescription(c,i){
+  const weapon=c.weapon;
+  const descriptions=[
+    "+5 "+weapon+" damage","+10% attack speed","+45 attack range","+10% projectile speed",
+    "+1 projectile per volley","+1 projectile pierce","+15% projectile size","+8% movement speed",
+    "-10% dash cooldown","+35 pickup radius","+6% critical chance","+12% execute damage",
+    "-14% weapon spread","+10 "+weapon+" damage","+80 attack range","+16% projectile speed",
+    "Recover one spent hit","+2 projectile pierce","+25% projectile size","+8 "+weapon+" damage",
+    "+1 projectile per volley","+12% movement speed","-18% dash cooldown","+10% critical chance",
+    "+100 attack range","+20% projectile speed","+14 "+weapon+" damage","Fire 18% faster","+1 projectile pierce"
+  ];
+  if(c.id==="engineer"&&i>=0){
+    const turret=[
+      "Turret damage +10%","Turret fire rate +8%","Turret range +50","Turret projectile speed +10%",
+      "Turret volley +1","Turret pierce +1","Turret size +15%","Turret deployment radius +20",
+      "Turret cooldown -8%","Turret targeting range +35","Turret critical chance +5%","Turret execute damage +10%",
+      "Turret spread -12%","Turret damage +15%","Turret range +70","Turret projectile speed +15%",
+      "Deploy cooldown -12%","Turret pierce +2","Turret projectile size +25%","Turret damage +12%",
+      "Turret volley +1","Turret fire rate +12%","Turret cooldown -15%","Turret critical chance +8%",
+      "Turret range +100","Turret projectile speed +20%","Turret damage +20%","Turret fire rate +18%",
+      "Turret pierce +1","Turret damage +30%"
+    ];
+    return turret[i];
+  }
+  return descriptions[i];
+}
+
+const upgrades=buildCharacterUpgrades("warden");
 
 const enemyTypes=[
  {name:"Wisp",r:10,hp:24,speed:58,damage:8,color:"#713743",xp:3},
@@ -286,7 +364,7 @@ function start(isMultiplayer=false){
   bossesDefeated=0;nextBossTime=480;bossWarningTimer=0;toastTimer=0;
   auraRadius=0;auraTimer=0;auraPulse=0;
   turrets=[];turretCooldown=0;turretLevel=0;turretKills=0;turretKillsNeed=8;
-  turretUpgradeOpen=false;turretUpgradeChoices=[];turretVariant="basic";turretVariantUnlocked=false;
+  turretUpgradeOpen=false;turretUpgradeChoices=[];usedCharacterUpgrades=new Set();turretVariant="basic";turretVariantUnlocked=false;
   Object.assign(turretConfig,{damageMult:.5,fireRate:1.05,range:480,bulletSpeed:650,bulletSize:1,pierce:0,spread:0,shots:1,crit:0,life:1.4,bonusEssence:0});
   turretOwnedUpgrades.clear();
   Object.assign(player,{
@@ -1176,7 +1254,7 @@ function updateGems(dt){
 function showLevelUp(){
   if(!running||isUpgradeOpen()||pendingLevels<=0)return;
   paused=true;
-  const pool=[...upgrades].sort(()=>Math.random()-.5).slice(0,3);
+  const pool=buildCharacterUpgrades(activeCharacter.id).filter(u=>!usedCharacterUpgrades.has(u.name)).sort(()=>Math.random()-.5).slice(0,3);
   const box=$("choices");
   box.innerHTML="";
 
@@ -1187,6 +1265,7 @@ function showLevelUp(){
     b.innerHTML='<div class="icon">'+u.icon+'</div><strong>'+u.name+'</strong><span>'+u.desc+'</span>';
     b.onclick=()=>{
       u.apply();
+      usedCharacterUpgrades.add(u.name);
       pendingLevels--;
       level++;
       $("upgrade").classList.add("hidden");
