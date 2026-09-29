@@ -421,7 +421,7 @@ if(!window.supabase) {
     }
   });
   window.NightfallMP= {
-    host:mpHostRoom,join:mpJoinRoom,start:mpStartGame,leave:mpLeave,tick:mpTick,drawRemote:mpDrawRemote,get enabled() {
+    host:mpHostRoom,join:mpJoinRoom,start:mpStartGame,leave:mpLeave,tick:mpTick,drawRemote:mpDrawRemote,getRemotePlayers:()=>Array.from(remotePlayers.values()),get enabled() {
       return mpConnected
     },get room() {
       return mpRoom
