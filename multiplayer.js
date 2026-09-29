@@ -7,6 +7,7 @@ if(!window.supabase) {
   window.NightfallMP= {
     host:unavailable,join:unavailable,start:unavailable,leave:async()=> {
     },tick:()=> {
+    },reportEnemyHit:()=> {
     },drawRemote:()=> {
     },get enabled() {
       return false
@@ -28,7 +29,7 @@ if(!window.supabase) {
       }
     }
   });
-  let mpChannel=null,mpRoom=null,mpHost=false,mpConnected=false,mpLastSend=0,mpLastRoomHeartbeat=0,mpRoomMax=4,mpJoinBusy=false;
+  let mpChannel=null,mpRoom=null,mpHost=false,mpConnected=false,mpLastSend=0,mpLastWorldSend=0,mpWorldVersion=0,mpLastRoomHeartbeat=0,mpRoomMax=4,mpJoinBusy=false;
   const remotePlayers=new Map();
   function mpSetStatus(text) {
     const el=document.getElementById("mp-status");
