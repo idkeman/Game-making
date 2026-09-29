@@ -55,10 +55,14 @@ const upgrades=[
 ];
 
 const enemyTypes=[
- {name:"Wisp",r:10,hp:24,speed:58,damage:8,color:"#8c4c67",xp:3},
- {name:"Stalker",r:14,hp:48,speed:46,damage:12,color:"#b15c55",xp:5},
- {name:"Swift",r:8,hp:16,speed:88,damage:7,color:"#705c9e",xp:2},
- {name:"Brute",r:22,hp:120,speed:30,damage:19,color:"#b87955",xp:12}
+ {name:"Wisp",r:10,hp:24,speed:58,damage:8,color:"#713743",xp:3},
+ {name:"Stalker",r:14,hp:48,speed:46,damage:12,color:"#8f4337",xp:5},
+ {name:"Swift",r:8,hp:16,speed:88,damage:7,color:"#633a35",xp:2},
+ {name:"Brute",r:22,hp:120,speed:30,damage:19,color:"#8d5437",xp:12},
+ {name:"Ghoul",r:12,hp:30,speed:70,damage:9,color:"#765044",xp:3},
+ {name:"Leaper",r:11,hp:34,speed:54,damage:14,color:"#8a4d38",xp:4},
+ {name:"Spitter",r:13,hp:42,speed:38,damage:10,color:"#6f4b38",xp:5},
+ {name:"Crawler",r:9,hp:20,speed:102,damage:8,color:"#6d3d35",xp:2}
 ];
 
 const bossTypes=[
@@ -305,13 +309,16 @@ function spawnEnemy(){
   const distance=Math.max(W,H)*.65+180+Math.random()*280;
   let x=player.x+Math.cos(angle)*distance;
   let y=player.y+Math.sin(angle)*distance;
-  let available=timeLeft<280?4:timeLeft<430?3:2;
+  const elapsed=600-timeLeft;
+  const available=elapsed<35?4:elapsed<90?6:8;
   const type=enemyTypes[Math.floor(Math.random()*available)];
   const scale=difficulty();
   enemies.push({
     id:enemyId++,x,y,r:type.r,hp:type.hp*scale,max:type.hp*scale,
     speed:type.speed*(1+(600-timeLeft)/1500),damage:type.damage,
-    color:type.color,xp:type.xp,flash:0,kind:type.name
+    color:type.color,xp:type.xp,flash:0,kind:type.name,
+    animSeed:Math.random()*Math.PI*2,attackTimer:1.2+Math.random()*1.8,
+    leapTimer:1+Math.random()*2.5,vx:0,vy:0
   });
 }
 
