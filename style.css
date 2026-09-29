@@ -111,3 +111,10 @@ kbd{display:inline-block;padding:4px 6px;border:1px solid #49382f;background:#25
 .game-options small{flex-basis:100%;color:#71655e;font-size:8px;line-height:1.35;letter-spacing:.04em}
 .option-toggle{margin-left:0!important;padding:10px 14px;font-size:9px}
 .option-toggle.active{background:#d46a45;border-color:#d46a45;color:#160d0a;box-shadow:0 0 18px #b94f3544}
+
+.keybind-panel{width:min(560px,calc(100% - 28px))}
+.keybind-list{display:grid;gap:8px;margin:20px 0;text-align:left}
+.keybind-list>div{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:11px 13px;border:1px solid #332621;background:#100c0a}
+.keybind-list kbd{min-width:110px;text-align:center;padding:7px 9px;border:1px solid #5a4034;background:#211512;color:#e2c8a5;font:900 10px system-ui,sans-serif;letter-spacing:.08em}
+.keybind-list span{color:#b88c6c;font-size:9px;letter-spacing:.12em;font-weight:900}
+@media(max-width:520px){.keybind-list kbd{min-width:88px}.keybind-list>div{gap:10px}}
