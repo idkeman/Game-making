@@ -90,6 +90,17 @@ const characterUpgradeBlueprints= {
     prefix:"ENGINEER"
   }
 };
+const soyMilkUpgrade= {
+  icon:"🥛",
+  name:"Soy Milk",
+  desc:"Massively increases fire rate, but reduces damage to 12%. Your weapon becomes a minigun.",
+  apply:()=> {
+    player.damage*=.12;
+    player.rate=Math.max(.025,player.rate*.18);
+    player.soyMilk=true;
+    showToast("SOY MILK · MINIGUN MODE");
+  }
+};
 function buildCharacterUpgrades(id) {
   const c=characters.find(x=>x.id===id)||characters[0];
   const names=characterUpgradeBlueprints[id]?.names||characterUpgradeBlueprints.warden.names;
@@ -127,12 +138,14 @@ function buildCharacterUpgrades(id) {
       ()=>maxMana+=60,
       ()=>player.damage+=25
     ];
-    return names.map((name,i)=>({
+    const upgrades=names.map((name,i)=>({
       icon:["✦","◇","✧","◈","☽","✹","✺","☄","◉","❖","☆","⚝"][i%12],
       name,
       desc:characterUpgradeDescription(c,i),
       apply:magicEffects[i]
     }));
+    upgrades.push(soyMilkUpgrade);
+    return upgrades;
   }
   const effects=[
   ()=>player.damage+=5,()=>player.rate=Math.max(.06,player.rate*.9),()=>player.range+=45,
@@ -148,12 +161,14 @@ function buildCharacterUpgrades(id) {
   ()=>player.crit+=.1,()=>player.range+=100,()=>player.projectileSpeed*=1.2,
   ()=>player.damage+=14,()=>player.rate=Math.max(.045,player.rate*.82),()=>player.pierce++
   ];
-  return names.map((name,i)=>( {
+  const upgrades=names.map((name,i)=>( {
     icon:["✦","◈","✧","◇","◎","⊙","❖","†","✹","☄","⌁","✺","♥","☀","◉","⚔"][i%16],
     name,
     desc:characterUpgradeDescription(c,i),
     apply:effects[i]
   }));
+  upgrades.push(soyMilkUpgrade);
+  return upgrades;
 }
 function characterUpgradeDescription(c,i) {
   const weapon=c.weapon;
