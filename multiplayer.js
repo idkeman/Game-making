@@ -357,7 +357,9 @@ if(!window.supabase) {
       mpLastSend=now;
       mpChannel.send( {
         type:"broadcast",event:"player-state",payload: {
-          id:mpId,name:mpName,x:player.x,y:player.y,aimX:cameraX-W/2+mouseX,aimY:cameraY-H/2+mouseY,hits,maxHits,level,runTime
+          id:mpId,name:mpName,x:player.x,y:player.y,aimX:cameraX-W/2+mouseX,aimY:cameraY-H/2+mouseY,hits,maxHits,level,runTime,bullets:Array.isArray(bullets)?bullets.slice(-120).map(b=>({
+            x:b.x,y:b.y,vx:b.vx,vy:b.vy,r:b.r,color:b.color||null,empowered:!!b.empowered
+          })):[]
         }
       });
     }
@@ -429,6 +431,24 @@ if(!window.supabase) {
   }
   function mpDrawRemote(ctx) {
     for(const p of remotePlayers.values()) {
+      if(Array.isArray(p.bullets)) {
+        for(const b of p.bullets) {
+          if(!Number.isFinite(b.x)||!Number.isFinite(b.y))continue;
+          const vx=Number(b.vx)||0,vy=Number(b.vy)||0;
+          const angle=Math.atan2(vy,vx);
+          const radius=Math.max(2,Math.min(10,Number(b.r)||4));
+          const color=b.color||(b.empowered?"#f0c47a":"#d46a45");
+          ctx.save();
+          ctx.translate(b.x,b.y);
+          ctx.rotate(angle);
+          ctx.globalAlpha=.95;
+          ctx.shadowBlur=b.empowered?18:10;
+          ctx.shadowColor=color;
+          ctx.fillStyle=color;
+          ctx.fillRect(-Math.max(5,radius*1.7),-Math.max(1.5,radius*.45),Math.max(10,radius*3.4),Math.max(3,radius*.9));
+          ctx.restore();
+        }
+      }
       const a=Math.atan2(p.aimY-p.y,p.aimX-p.x);
       ctx.save();
       ctx.translate(p.x,p.y);
