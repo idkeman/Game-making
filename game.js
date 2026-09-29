@@ -19,6 +19,7 @@ let mouseX=0,mouseY=0,mouseDown=false,runTime=0,gunKick=0;
 let boss=null,bossesDefeated=0,nextBossTime=480,bossWarningTimer=0,toastTimer=0,multiplayerMode=false;
 let sharedWorldVersion=0;
 let dying=false,deathTimer=0,deathDuration=3.2,deathSeed=0;
+let deathCinematicEnemies=[];
 const keys=new Set();
 const enemies=[];
 const bullets=[];
@@ -1472,10 +1473,16 @@ function beginDeath() {
   addRing(player.x,player.y,8,70,"deathStart");
   // Pull the nearest monsters toward the player so the death becomes a swarm
   // rather than simply freezing the current enemy positions.
-  const swarm=enemies
-  .filter(e=>!e.dead)
-  .sort((a,b)=>Math.hypot(a.x-player.x,a.y-player.y)-Math.hypot(b.x-player.x,b.y-player.y))
-  .slice(0,18);
+  // Limit the cinematic to the nearest 18 enemies. Late-game hordes can be
+  // very large, and sorting/rendering the entire horde during death can
+  // overwhelm weaker browsers.
+  const candidates=enemies.filter(e=>!e.dead);
+  candidates.sort((a,b)=>
+    Math.hypot(a.x-player.x,a.y-player.y)-
+    Math.hypot(b.x-player.x,b.y-player.y)
+  );
+  deathCinematicEnemies=candidates.slice(0,18);
+  const swarm=deathCinematicEnemies;
   swarm.forEach((e,i)=> {
     const a=(i/swarm.length)*Math.PI*2+deathSeed*.01;
     const radius=32+(i%4)*15;
@@ -1521,6 +1528,7 @@ function updateDeath(dt) {
   cameraY=player.y;
   if(deathTimer<=0) {
     dying=false;
+    deathCinematicEnemies=[];
     end(false);
   }
 }
@@ -1787,6 +1795,7 @@ function end(win) {
 
 function drawMinimap() {
   const mapCanvas=document.getElementById("minimap-canvas");
+  if(dying)return;
   if(!mapCanvas)return;
 
   const mapCtx=mapCanvas.getContext("2d");
@@ -1937,7 +1946,8 @@ function draw() {
   drawRings();
   drawAura();
   for(const g of gems)drawGem(g);
-  for(const e of enemies)drawEnemy(e);
+  const enemiesToDraw=dying?deathCinematicEnemies:enemies;
+  for(const e of enemiesToDraw)drawEnemy(e);
   drawTurrets();
   if(boss)drawBoss(boss);
   for(const b of enemyBullets)drawEnemyBullet(b);
