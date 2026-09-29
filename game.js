@@ -429,11 +429,49 @@ function updateEnemies(dt){
   for(let i=enemies.length-1;i>=0;i--){
     const e=enemies[i];
     if(e.dead)continue;
-    const a=Math.atan2(player.y-e.y,player.x-e.x);
-    const d=Math.hypot(player.x-e.x,player.y-e.y);
-    e.x+=Math.cos(a)*e.speed*dt;
-    e.y+=Math.sin(a)*e.speed*dt;
+    const dx=player.x-e.x,dy=player.y-e.y;
+    const d=Math.hypot(dx,dy)||1;
+    const a=Math.atan2(dy,dx);
     e.flash=Math.max(0,e.flash-dt);
+    e.animSeed=(e.animSeed||0)+dt;
+
+    if(e.kind==="Ghoul"){
+      const side=Math.sin(runTime*7+e.id)*.7;
+      const moveA=a+side;
+      e.x+=Math.cos(moveA)*e.speed*dt;
+      e.y+=Math.sin(moveA)*e.speed*dt;
+    }else if(e.kind==="Leaper"){
+      e.leapTimer-=dt;
+      if(e.leapTimer<=0&&d<430){
+        e.leapTimer=2.2+Math.random()*1.3;
+        e.vx=Math.cos(a)*250;
+        e.vy=Math.sin(a)*250;
+        burst(e.x,e.y,5,"dash");
+      }
+      e.x+=(e.vx+Math.cos(a)*e.speed)*dt;
+      e.y+=(e.vy+Math.sin(a)*e.speed)*dt;
+      e.vx*=Math.pow(.03,dt);
+      e.vy*=Math.pow(.03,dt);
+    }else if(e.kind==="Spitter"){
+      const desired=230;
+      const direction=d<desired?-1:d>desired?1:0;
+      e.x+=Math.cos(a)*e.speed*direction*dt;
+      e.y+=Math.sin(a)*e.speed*direction*dt;
+      e.attackTimer-=dt;
+      if(e.attackTimer<=0&&d<430){
+        e.attackTimer=2.3+Math.random()*1.2;
+        const speed=150;
+        enemyBullets.push({x:e.x,y:e.y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed,r:4,damage:e.damage,life:4});
+        burst(e.x,e.y,4,"hit");
+      }
+    }else if(e.kind==="Crawler"){
+      const wobble=Math.sin(runTime*13+e.animSeed)*.35;
+      e.x+=Math.cos(a+wobble)*e.speed*dt;
+      e.y+=Math.sin(a+wobble)*e.speed*dt;
+    }else{
+      e.x+=Math.cos(a)*e.speed*dt;
+      e.y+=Math.sin(a)*e.speed*dt;
+    }
 
     if(player.invuln<=0&&d<e.r+player.r){
       damagePlayer(e.damage*dt*3);
