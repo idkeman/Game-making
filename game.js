@@ -255,7 +255,7 @@ const characters=[
   id:"engineer",name:"THE ENGINEER",weapon:"Deployable Turret",weaponKind:"turret",icon:"⚙",maxHits:3,speed:205,damage:14,rate:.65,range:430,shots:1,spread:.04,projectileSpeed:620,pierce:0,bulletSize:1,desc:"Builds a growing army of autonomous guns.",gimmick:"Press T every 20s to deploy. Turrets level from their own kills.",color:"#c08b63",unlockTime:750,unlockEssence:2200,cost:900
 },
 {
-  id:"wizard",name:"THE WIZARD",weapon:"Arcane Staff",weaponKind:"magic",icon:"✦",maxHits:3,speed:210,damage:32,rate:.62,range:520,shots:1,spread:.02,projectileSpeed:540,pierce:1,bulletSize:1.25,desc:"A pure spellcaster. Every attack, upgrade, and ability is magical.",gimmick:"Spells consume mana. Press E to cast Arcane Nova.",color:"#b58ad6",unlockTime:900,unlockEssence:2800,cost:1100
+  id:"wizard",name:"THE WIZARD",weapon:"Arcane Staff",weaponKind:"magic",icon:"✦",maxHits:3,speed:210,damage:32,rate:.62,range:520,shots:1,spread:.02,projectileSpeed:540,pierce:1,bulletSize:1.25,desc:"A pure spellcaster. Every attack, upgrade, and ability is magical.",gimmick:"Spells consume mana. Press E to cast Arcane Nova.",color:"#d49a6a",unlockTime:900,unlockEssence:2800,cost:1100
 }
 ];
 let selectedCharacterId="warden";
@@ -1016,7 +1016,7 @@ function fire(autoTarget=null) {
       life:1.8,
       pierce:player.pierce+(empowered?2:0),
       speed:player.projectileSpeed,
-      color:empowered?"#e5b6ff":"#b58ad6",
+      color:empowered?"#f0c47a":"#d49a6a",
       empowered
     });
     burst(player.x+Math.cos(base)*25,player.y+Math.sin(base)*25,7,empowered?"magicCrit":"magic");
