@@ -70,11 +70,6 @@
           <button id="character-btn" class="secondary">CHANGE SURVIVOR</button>
         </div>
         <div class="mode-row"><button id="start-btn">SOLO NIGHT</button><button id="host-btn" class="secondary">HOST CO-OP</button></div>
-        <div class="game-options">
-          <span class="eyebrow">GAME OPTIONS</span>
-          <button id="autoaim-btn" class="option-toggle secondary" type="button" aria-pressed="false">AUTO-AIM: OFF</button>
-          <small>Automatically aims at the nearest enemy in range. Shooting is manual: left click or SPACE.</small>
-        </div>
         <div class="join-row"><input id="join-code" maxlength="6" placeholder="ROOM CODE" autocomplete="off"><button id="join-btn" class="secondary">JOIN</button></div>
         <div id="meta-summary" class="meta-summary">ESSENCE 0 · LIFETIME 0:00</div>
         <div id="mp-status" class="mp-status">Solo mode · multiplayer is optional</div>
@@ -90,6 +85,22 @@
           <span><kbd>LEFT CLICK</kbd> SHOOT</span>
           <span><kbd>P</kbd> PAUSE</span>
         </div>
+      </div>
+    </section>
+
+    <section id="keybinds" class="overlay hidden">
+      <div class="panel keybind-panel">
+        <p class="eyebrow">NIGHTFALL CONTROLS</p>
+        <h1>Know your controls.</h1>
+        <div class="keybind-list">
+          <div><kbd>WASD</kbd><span>MOVE</span></div>
+          <div><kbd>LEFT CLICK</kbd><span>SHOOT</span></div>
+          <div><kbd>SPACE</kbd><span>SHOOT</span></div>
+          <div><kbd>SHIFT</kbd><span>DASH</span></div>
+          <div><kbd>F</kbd><span>AUTO-AIM ON / OFF</span></div>
+          <div><kbd>P</kbd><span>PAUSE</span></div>
+        </div>
+        <button id="dismiss-keybinds">BEGIN NIGHT</button>
       </div>
     </section>
 
