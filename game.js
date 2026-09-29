@@ -718,7 +718,8 @@ function drawBackground(){
   }
 }
 
-\n
+
+
 function drawPlayer(){
   ctx.save();
   ctx.translate(player.x,player.y);
