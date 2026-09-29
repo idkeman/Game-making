@@ -8,7 +8,8 @@ let auraRadius=0,auraTimer=0,auraPulse=0;
 let turrets=[],turretCooldown=0,turretLevel=0,turretKills=0,turretKillsNeed=8;
 let turretUpgradeOpen=false,turretUpgradeChoices=[];
 let turretVariant="basic",turretVariantUnlocked=false;
-const turretConfig={damageMult:.5,fireRate:1.05,range:480,bulletSpeed:650,bulletSize:1,pierce:0,spread:0,shots:1,crit:0,life:1.4};
+const turretConfig={damageMult:.5,fireRate:1.05,range:480,bulletSpeed:650,bulletSize:1,pierce:0,spread:0,shots:1,crit:0,life:1.4,bonusEssence:0};
+const turretOwnedUpgrades=new Set();
 let spawnTimer=0,shootTimer=0,dashTimer=0,enemyId=0,shake=0,pendingLevels=0;
 let cameraX=0,cameraY=0;
 let mouseX=0,mouseY=0,mouseDown=false,runTime=0,gunKick=0;
@@ -286,7 +287,8 @@ function start(isMultiplayer=false){
   auraRadius=0;auraTimer=0;auraPulse=0;
   turrets=[];turretCooldown=0;turretLevel=0;turretKills=0;turretKillsNeed=8;
   turretUpgradeOpen=false;turretUpgradeChoices=[];turretVariant="basic";turretVariantUnlocked=false;
-  Object.assign(turretConfig,{damageMult:.5,fireRate:1.05,range:480,bulletSpeed:650,bulletSize:1,pierce:0,spread:0,shots:1,crit:0,life:1.4});
+  Object.assign(turretConfig,{damageMult:.5,fireRate:1.05,range:480,bulletSpeed:650,bulletSize:1,pierce:0,spread:0,shots:1,crit:0,life:1.4,bonusEssence:0});
+  turretOwnedUpgrades.clear();
   Object.assign(player,{
     x:0,y:0,r:14,speed:220,damage:18,rate:.46,range:410,shots:1,
     spread:.15,magnet:75,regen:0,armor:0,crit:0,pierce:0,bulletSize:1,
@@ -498,6 +500,7 @@ function turretGainKill(t){
   turretKills++;
   if(t.kills>=t.killNeed){
     gems.push({x:t.x,y:t.y,v:2,r:4});
+    for(let i=0;i<turretConfig.bonusEssence;i++)gems.push({x:t.x+(Math.random()-.5)*14,y:t.y+(Math.random()-.5)*14,v:1,r:3});
     t.kills-=t.killNeed;
     t.level++;
     turretLevel=Math.max(turretLevel,t.level);
@@ -525,7 +528,7 @@ const turretUpgrades=[
  {name:"Siege Feed",desc:"+25% damage, -10% range",apply:()=>{turretConfig.damageMult*=1.25;turretConfig.range=Math.max(180,turretConfig.range*.9)}},
  {name:"Scatter Core",desc:"+2 weaker projectiles per volley",apply:()=>{turretConfig.shots+=2;turretConfig.spread+=.06}},
  {name:"Blood Calibration",desc:"+10% turret critical chance",apply:()=>turretConfig.crit+=.1},
- {name:"Vampiric Targeting",desc:"Turret kills generate +1 extra essence pickup",apply:()=>turretConfig.life+=.08},
+ {name:"Vampiric Targeting",desc:"Turret kills generate +1 extra essence pickup",apply:()=>turretConfig.bonusEssence++},
  {name:"Fortified Chassis",desc:"All deployed turrets gain +6 radius",apply:()=>turrets.forEach(t=>t.r+=6)},
  {name:"Hunter AI",desc:"+90 range and +12% projectile speed",apply:()=>{turretConfig.range+=90;turretConfig.bulletSpeed*=1.12}},
  {name:"Execution Protocol",desc:"+25% damage to enemies below 35% health",apply:()=>turretConfig.damageMult*=1.25},
@@ -535,10 +538,11 @@ const turretUpgrades=[
 
 function openTurretUpgrade(t){
   if(!turretEligible())return;
-  const pool=[...turretUpgrades];
+  const pool=turretUpgrades.filter(u=>!turretOwnedUpgrades.has(u.name));
+  const available=pool.length?pool:[...turretUpgrades];
   turretUpgradeChoices=[];
-  while(turretUpgradeChoices.length<3&&pool.length){
-    turretUpgradeChoices.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  while(turretUpgradeChoices.length<3&&available.length){
+    turretUpgradeChoices.push(available.splice(Math.floor(Math.random()*available.length),1)[0]);
   }
   turretUpgradeOpen=true;paused=true;
   const box=$("turret-upgrades");
@@ -562,6 +566,7 @@ function chooseTurretUpgrade(i){
   const u=turretUpgradeChoices[i];
   if(!u)return;
   u.apply();
+  turretOwnedUpgrades.add(u.name);
   turretUpgradeOpen=false;
   paused=false;
   $("turret-upgrades").classList.add("hidden");
