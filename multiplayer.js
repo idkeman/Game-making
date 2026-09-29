@@ -131,5 +131,5 @@ function mpDrawRemote(ctx){
 }
 window.NightfallMP={
   host:mpHostRoom,join:mpJoinRoom,leave:mpLeave,tick:mpTick,drawRemote:mpDrawRemote,
-  get enabled(){return mpConnected},get room(){return mpRoom},get host(){return mpHost}
+  get enabled(){return mpConnected},get room(){return mpRoom},get isHost(){return mpHost}
 };
