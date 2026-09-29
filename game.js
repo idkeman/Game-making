@@ -1205,6 +1205,24 @@ function syncSharedWorld(snapshot) {
   }
 }
 
+function applySharedMagicAbility(x,y,radius,damage,bossDamage) {
+  if(!multiplayerMode||!window.NightfallMP.isHost)return;
+  for(const e of [...enemies]) {
+    if(e.dead)continue;
+    const d=Math.hypot(e.x-x,e.y-y);
+    if(d<=radius+e.r) {
+      e.hp-=damage*(1-d/(radius+e.r)*.45);
+      e.flash=.2;
+      if(e.hp<=0)killEnemy(e);
+    }
+  }
+  if(boss&&!boss.dead&&Math.hypot(boss.x-x,boss.y-y)<=radius+boss.r) {
+    boss.hp-=bossDamage;
+    boss.flash=.2;
+    if(boss.hp<=0)defeatBoss();
+  }
+}
+
 function applySharedEnemyDamage(id,damage) {
   if(!multiplayerMode||!window.NightfallMP.isHost)return;
   const amount=Math.max(0,Math.min(1000,Number(damage)||0));
