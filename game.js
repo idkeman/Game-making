@@ -82,6 +82,29 @@ const characters=[
   {id:"stormcaller",name:"STORMCALLER",weapon:"Arc Rifle",weaponKind:"arc",icon:"ϟ",maxHits:3,speed:225,damage:20,rate:.50,range:500,shots:1,spread:.02,projectileSpeed:720,pierce:0,bulletSize:1,desc:"A crackling rifle whose shots leap from target to target.",gimmick:"Hits chain to up to 2 nearby enemies. Lower direct damage.",color:"#c77a58",unlockTime:600,unlockEssence:1600,cost:700}
 ];
 
+const SETTINGS_KEY="nightfall_settings_v1";
+let autoShoot=false;
+try{
+  const settings=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null");
+  autoShoot=!!settings?.autoShoot;
+}catch{}
+function saveSettings(){
+  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify({autoShoot}))}catch{}
+}
+function updateAutoShootUI(){
+  const btn=$("autoshoot-btn");
+  if(!btn)return;
+  btn.textContent=autoShoot?"AUTO-SHOOT: ON":"AUTO-SHOOT: OFF";
+  btn.classList.toggle("active",autoShoot);
+  btn.setAttribute("aria-pressed",String(autoShoot));
+}
+function toggleAutoShoot(){
+  autoShoot=!autoShoot;
+  saveSettings();
+  updateAutoShootUI();
+  showToast(autoShoot?"AUTO-SHOOT ENABLED":"AUTO-SHOOT DISABLED");
+}
+
 let selectedCharacterId="warden";
 let activeCharacter=characters[0];
 let meta={essence:0,totalEssence:0,playTime:0,unlocked:["warden"]};
@@ -239,6 +262,8 @@ addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 
 $("start-btn").addEventListener("click",()=>start(false));
 $("character-btn").addEventListener("click",openCharacterSelect);
+$("autoshoot-btn").addEventListener("click",toggleAutoShoot);
+updateAutoShootUI();
 $("character-back").addEventListener("click",closeCharacterSelect);
 $("character-confirm").addEventListener("click",closeCharacterSelect);
 updateCharacterSummary();
@@ -365,9 +390,12 @@ function update(dt){
     for(let i=0;i<count;i++)spawnEnemy();
   }
 
-  if(mouseDown&&shootTimer<=0){
-    shootTimer=player.rate;
-    fire();
+  if((autoShoot||mouseDown)&&shootTimer<=0){
+    const target=autoShoot?nearestTarget():null;
+    if(!autoShoot||target){
+      shootTimer=player.rate;
+      fire(target);
+    }
   }
 
   updateBullets(dt);
@@ -433,10 +461,10 @@ function nearestTarget(){
   return best;
 }
 
-function fire(){
+function fire(autoTarget=null){
   if(player.weapon==="flame"&&player.overheated)return;
-  const targetX=cameraX-W/2+mouseX;
-  const targetY=cameraY-H/2+mouseY;
+  const targetX=autoTarget?autoTarget.x:cameraX-W/2+mouseX;
+  const targetY=autoTarget?autoTarget.y:cameraY-H/2+mouseY;
   const dx=targetX-player.x;
   const dy=targetY-player.y;
   if(Math.hypot(dx,dy)<1)return;
