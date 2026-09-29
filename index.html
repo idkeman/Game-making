@@ -62,6 +62,16 @@
           <span><i class="map-dot friend"></i> FRIEND</span>
         </div>
       </div>
+      <div class="mana-hud hidden" id="mana-hud">
+        <div class="mana-label">
+          <span>MANA</span>
+          <b id="mana-text">100 / 100</b>
+        </div>
+        <div class="mana-track">
+          <div id="mana-fill"></div>
+        </div>
+        <small id="magic-cooldown">NOVA READY · E</small>
+      </div>
       <div class="turret-hud hidden" id="turret-hud">
         <span>TURRETS</span>
         <b id="turret-count">0 · LV 0</b>
@@ -178,6 +188,10 @@
                     <div>
                       <kbd>P</kbd>
                       <span>PAUSE</span>
+                    </div>
+                    <div>
+                      <kbd>E</kbd>
+                      <span>ARCANE NOVA · WIZARD</span>
                     </div>
                     <div>
                       <kbd>T</kbd>
