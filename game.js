@@ -7,7 +7,7 @@ let level=1,xp=0,xpNeed=10,kills=0,timeLeft=600,hp=100,maxHp=100,score=0,hits=0,
 let spawnTimer=0,shootTimer=0,dashTimer=0,enemyId=0,shake=0,pendingLevels=0;
 let cameraX=0,cameraY=0;
 let mouseX=0,mouseY=0,mouseDown=false,runTime=0,gunKick=0;
-let boss=null,bossesDefeated=0,nextBossTime=480,bossWarningTimer=0,toastTimer=0;
+let boss=null,bossesDefeated=0,nextBossTime=480,bossWarningTimer=0,toastTimer=0,multiplayerMode=false;
 
 const keys=new Set();
 const enemies=[];
@@ -105,7 +105,9 @@ canvas.addEventListener("pointercancel",()=>{mouseDown=false;});
 canvas.addEventListener("pointerleave",()=>{mouseDown=false;});
 addEventListener("blur",()=>{mouseDown=false;keys.clear();});
 
-$("start-btn").addEventListener("click",()=>start());
+$("start-btn").addEventListener("click",()=>start(false));
+$("host-btn").addEventListener("click",async()=>{if(await window.NightfallMP.host())start(true)});
+$("join-btn").addEventListener("click",async()=>{if(await window.NightfallMP.join($("join-code").value))start(true)});
 $("resume-btn").addEventListener("click",()=>togglePause());
 $("quit-btn").onclick=()=>end(false);
 $("again-btn").addEventListener("click",()=>start());
@@ -122,8 +124,8 @@ function resetWorld(){
   boss=null;
 }
 
-function start(){
-  level=1;xp=0;xpNeed=10;kills=0;timeLeft=600;hits=0;score=0;
+function start(isMultiplayer=false){
+  level=1;xp=0;xpNeed=10;kills=0;timeLeft=600;hits=0;score=0;multiplayerMode=isMultiplayer;
   spawnTimer=0;shootTimer=0;dashTimer=0;enemyId=0;shake=0;pendingLevels=0;runTime=0;gunKick=0;
   bossesDefeated=0;nextBossTime=480;bossWarningTimer=0;toastTimer=0;
   Object.assign(player,{
@@ -138,6 +140,11 @@ function start(){
   mouseX=W/2+100;
   mouseY=H/2;
   mouseDown=false;
+  if(multiplayerMode){
+    $("mp-status").textContent=window.NightfallMP.host?"HOST CO-OP · waiting for players":"CO-OP · connected";
+  }else{
+    $("mp-status").textContent="Solo mode · multiplayer is optional";
+  }
   $("start").classList.add("hidden");
   $("end").classList.add("hidden");
   $("pause").classList.add("hidden");
@@ -217,6 +224,7 @@ function update(dt){
   updateParticles(dt);
   updateRings(dt);
   updateRegen(dt);
+  if(multiplayerMode)window.NightfallMP.tick(dt);
   ui();
 }
 
@@ -614,6 +622,7 @@ function end(win){
   if(!running)return;
   running=false;
   paused=false;
+  if(multiplayerMode)window.NightfallMP.leave();
   $("pause").classList.add("hidden");
   $("upgrade").classList.add("hidden");
   $("end").classList.remove("hidden");
@@ -638,6 +647,7 @@ function draw(){
   for(const b of enemyBullets)drawEnemyBullet(b);
   for(const b of bullets)drawBullet(b);
   drawPlayer();
+  if(multiplayerMode)window.NightfallMP.drawRemote(ctx);
   drawParticles();
   ctx.restore();
 
