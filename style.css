@@ -118,3 +118,15 @@ kbd{display:inline-block;padding:4px 6px;border:1px solid #49382f;background:#25
 .keybind-list kbd{min-width:110px;text-align:center;padding:7px 9px;border:1px solid #5a4034;background:#211512;color:#e2c8a5;font:900 10px system-ui,sans-serif;letter-spacing:.08em}
 .keybind-list span{color:#b88c6c;font-size:9px;letter-spacing:.12em;font-weight:900}
 @media(max-width:520px){.keybind-list kbd{min-width:88px}.keybind-list>div{gap:10px}}
+
+.turret-hud{position:fixed;left:16px;bottom:86px;z-index:5;padding:8px 10px;border:1px solid #4b3329;background:#100c0a;box-shadow:0 8px 24px #0008;min-width:150px}
+.turret-hud span{display:block;color:#8f6d59;font-size:7px;font-weight:900;letter-spacing:.14em}
+.turret-hud b{color:#d8b18d;font-size:15px}
+.turret-hud small{display:block;color:#b88c6c;font-size:7px;letter-spacing:.05em;margin-top:2px}
+.turret-panel{width:min(760px,calc(100% - 28px))}
+.turret-upgrade-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}
+.turret-upgrade-card{min-height:120px;text-align:left;padding:16px;border:1px solid #51372b;background:#160f0d;color:#d8b18d;display:flex;flex-direction:column;gap:10px}
+.turret-upgrade-card:hover{border-color:#d46a45;transform:translateY(-2px)}
+.turret-upgrade-card b{font-size:11px;letter-spacing:.05em}
+.turret-upgrade-card span{font-size:9px;color:#9b7968;line-height:1.45}
+@media(max-width:650px){.turret-upgrade-grid{grid-template-columns:1fr}.turret-upgrade-card{min-height:90px}.turret-hud{left:10px;bottom:72px}}
