@@ -138,7 +138,6 @@ function characterUpgradeDescription(c,i){
   return descriptions[i];
 }
 
-const upgrades=buildCharacterUpgrades("warden");
 
 const enemyTypes=[
  {name:"Wisp",r:10,hp:24,speed:58,damage:8,color:"#713743",xp:3},
