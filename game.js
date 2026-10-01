@@ -456,7 +456,7 @@ canvas.addEventListener("pointerdown",e=> {
     mouseDown=true;
     canvas.setPointerCapture?.(e.pointerId);
     updateAim(e);
-    fire();
+    tryFire();
   }
 });
 canvas.addEventListener("pointerup",e=> {
@@ -671,13 +671,7 @@ function update(dt) {
     }
   }
   const shootHeld=mouseDown||keys.has(" ");
-  if(shootHeld&&shootTimer<=0) {
-    const target=autoAim?nearestTarget():null;
-    if(!autoAim||target) {
-      shootTimer=player.rate;
-      fire(target);
-    }
-  }
+  if(shootHeld)tryFire();
   updateBullets(dt);
   updateEnemyBullets(dt);
   if(!multiplayerMode||window.NightfallMP.isHost)updateEnemies(dt);
@@ -1002,6 +996,20 @@ function nearestTarget() {
     }
   }
   return best;
+}
+function tryFire() {
+  // All firing requests, including rapid pointer events from autoclickers,
+  // must pass through the same cooldown gate.
+  if(!running||paused||dying||isUpgradeOpen()||shootTimer>0)return false;
+  const target=autoAim?nearestTarget():null;
+  if(autoAim&&!target)return false;
+
+  // Consume the fire interval before creating the projectile. Pointer events
+  // and the game loop can both request a shot, so the cooldown must be set at
+  // the single point where a shot is authorized.
+  shootTimer=Math.max(0.025,player.rate);
+  fire(target);
+  return true;
 }
 function fire(autoTarget=null) {
   if(player.weapon==="flame"&&player.overheated)return;
