@@ -32,7 +32,6 @@ if(signup){const u=$("authUsername").value.trim();if(!u){err("Enter a username."
 const {data,error}=await client.auth.signUp({email,password:pass,options:{data:{username:u},emailRedirectTo:location.href.split("#")[0]}});
 if(error){err(error.message);return}if(data.session){await refresh();close()}else err("Account created. Check your email to verify it, then log in.");
 }else{const {error}=await client.auth.signInWithPassword({email,password:pass});if(error){err(error.message);return}await refresh();close()}}
-=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:location.href.split("#")[0]}});if(error)err(error.message)}
 async function save(){const u=$("newUsername").value.trim();$("accountError").textContent="";
 if(!u){$("accountError").textContent="Enter a username.";return}
 const {data,error}=await client.rpc("update_my_username",{new_username:u});if(error){$("accountError").textContent=error.message;return}fill(data);await refresh()}
