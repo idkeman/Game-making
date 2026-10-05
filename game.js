@@ -622,6 +622,10 @@ function update(dt) {
     updateDeath(dt);
     return;
   }
+  if(comboTimer>0) {
+    comboTimer-=dt;
+    if(comboTimer<=0)killCombo=0;
+  }
   timeLeft-=dt;
   if(timeLeft<=0) {
     timeLeft=0;
@@ -2421,6 +2425,7 @@ function drawPlayer() {
     ctx.closePath();
     ctx.fill();
   }
+  drawOrganicTexture(17+(player.x||0)*.001,18,player.color||"#d49a78","#3a2018");
   ctx.restore();
   ctx.shadowBlur=10;
   ctx.shadowColor="#b94f35";
