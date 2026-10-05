@@ -2468,6 +2468,43 @@ function drawRings() {
     ctx.restore();
   }
 }
+function drawOrganicTexture(seed,radius,light="#d49a78",dark="#3a2018") {
+  const rand=n=>worldNoise(seed+n,seed*.73-n*.31);
+  ctx.save();
+  ctx.globalAlpha=.28;
+  ctx.strokeStyle=light;
+  ctx.lineWidth=Math.max(.8,radius*.045);
+  ctx.lineCap="round";
+  for(let i=0;i<3;i++) {
+    const a=rand(i*4.7)*Math.PI*2;
+    const len=radius*(.25+rand(i*7.1)*.38);
+    const x=Math.cos(a)*radius*.35;
+    const y=Math.sin(a)*radius*.35;
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.quadraticCurveTo(
+      x+Math.cos(a+.8)*len*.45,
+      y+Math.sin(a+.8)*len*.45,
+      x+Math.cos(a)*len,
+      y+Math.sin(a)*len
+    );
+    ctx.stroke();
+  }
+  ctx.globalAlpha=.2;
+  ctx.fillStyle=dark;
+  for(let i=0;i<3;i++) {
+    const a=rand(30+i)*Math.PI*2;
+    const rr=radius*(.08+rand(40+i)*.12);
+    ctx.beginPath();
+    ctx.ellipse(
+      Math.cos(a)*radius*.45,
+      Math.sin(a)*radius*.45,
+      rr,rr*.55,a,0,Math.PI*2
+    );
+    ctx.fill();
+  }
+  ctx.restore();
+}
 function drawGem(g) {
   ctx.save();
   ctx.translate(g.x,g.y);
@@ -2785,6 +2822,7 @@ function drawEnemy(e) {
     ctx.arc(e.r*.76,-e.r*.12,e.r*.06,0,Math.PI*2);
     ctx.fill();
   }
+  drawOrganicTexture((e.id||1)*.17+(e.x||0)*.001,e.r);
   ctx.restore();
 }
 function drawBoss(e) {
@@ -2827,6 +2865,7 @@ function drawBoss(e) {
   ctx.arc(-e.r*.28,-e.r*.12,e.r*.055,0,Math.PI*2);
   ctx.arc(e.r*.28,-e.r*.12,e.r*.055,0,Math.PI*2);
   ctx.fill();
+  drawOrganicTexture((e.id||1)*.31,e.r,"#e0a77d","#2b120f");
   ctx.restore();
 }
 function drawBullet(b) {
