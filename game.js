@@ -307,14 +307,22 @@ function formatMetaTime(seconds) {
   const total=Math.floor(Math.max(0,seconds));
   return Math.floor(total/60)+":"+String(total%60).padStart(2,"0");
 }
+function isNightfallAdmin() {
+  return !!window.NightfallAuth?.isAdmin;
+}
 function characterEligible(c) {
-  return c.id==="warden"||meta.unlocked.includes(c.id)||meta.playTime>=c.unlockTime||meta.totalEssence>=c.unlockEssence;
+  return isNightfallAdmin()||c.id==="warden"||meta.unlocked.includes(c.id)||meta.playTime>=c.unlockTime||meta.totalEssence>=c.unlockEssence;
 }
 function isCharacterOwned(c) {
-  return c.id==="warden"||meta.unlocked.includes(c.id)
+  return isNightfallAdmin()||c.id==="warden"||meta.unlocked.includes(c.id)
 }
 function unlockCharacter(c) {
   if(!characterEligible(c))return false;
+  if(isNightfallAdmin()) {
+    showToast("ADMIN ACCESS · "+c.name);
+    renderCharacterSelect();
+    return true;
+  }
   if(isCharacterOwned(c))return true;
   if(meta.essence<c.cost)return false;
   meta.essence-=c.cost;
@@ -324,6 +332,14 @@ function unlockCharacter(c) {
   showToast(c.name+" UNLOCKED");
   return true;
 }
+window.addEventListener("nightfall-auth-state",()=>{
+  if(!isNightfallAdmin()&&!isCharacterOwned(activeCharacter)) {
+    selectedCharacterId="warden";
+    activeCharacter=characters[0];
+  }
+  renderCharacterSelect();
+  updateCharacterSummary();
+});
 function chooseCharacter(id) {
   const c=characters.find(x=>x.id===id);
   if(!c||!isCharacterOwned(c))return;
