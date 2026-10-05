@@ -2007,64 +2007,154 @@ function worldNoise(x,y) {
   return n-Math.floor(n);
 }
 function drawBackground() {
+  // Large procedural regions with small-scale natural variation. The world is
+  // still infinite, but scenery is generated deterministically from tile
+  // coordinates so it stays stable as the camera moves.
   const tile=96;
   const left=Math.floor((cameraX-W/2)/tile)-1;
   const right=Math.ceil((cameraX+W/2)/tile)+1;
   const top=Math.floor((cameraY-H/2)/tile)-1;
   const bottom=Math.ceil((cameraY+H/2)/tile)+1;
+
   ctx.fillStyle="#050403";
   ctx.fillRect(cameraX-W/2-120,cameraY-H/2-120,W+240,H+240);
+
   for(let ty=top;ty<=bottom;ty++) {
     for(let tx=left;tx<=right;tx++) {
-      const wx=tx*tile,wy=ty*tile;
+      const wx=tx*tile;
+      const wy=ty*tile;
       const n=worldNoise(tx,ty);
-      const biome=Math.floor(worldNoise(tx*.31,ty*.31)*4);
-      const base=["#0b0706","#0d0806","#0c0807","#090806"][biome];
+      const n2=worldNoise(tx*1.73+41,ty*1.37-17);
+      const region=worldNoise(tx*.085+17,ty*.085-9);
+
+      // Soft regional color variation instead of obvious square biomes.
+      let base="#0b0706";
+      if(region<.22)base="#0a0806";
+      else if(region<.48)base="#0d0806";
+      else if(region<.72)base="#0c0907";
+      else base="#0e0806";
+
       ctx.fillStyle=base;
       ctx.fillRect(wx,wy,tile+1,tile+1);
-      ctx.strokeStyle=n>.55?"#17100d":"#120d0b";
-      ctx.lineWidth=1;
-      ctx.strokeRect(wx+.5,wy+.5,tile, tile);
-      if(n>.72) {
-        ctx.fillStyle="#1a100c";
-        ctx.fillRect(wx+18+n*30,wy+20+(1-n)*35,3,3);
-        ctx.fillRect(wx+55+(1-n)*20,wy+62+n*18,2,2);
-      }
-      if(n<.12) {
-        ctx.strokeStyle="#21130f";
+
+      // Fine ground grain.
+      if(n>.45) {
+        ctx.strokeStyle=n>.78?"#1c120e":"#150e0b";
+        ctx.lineWidth=1;
         ctx.beginPath();
-        ctx.moveTo(wx+18,wy+18);
-        ctx.lineTo(wx+38,wy+27);
-        ctx.lineTo(wx+31,wy+44);
+        ctx.moveTo(wx+10+n2*22,wy+17+n*25);
+        ctx.lineTo(wx+26+n2*28,wy+13+n*27);
+        ctx.moveTo(wx+56+n*25,wy+70+n2*18);
+        ctx.lineTo(wx+66+n*20,wy+66+n2*20);
         ctx.stroke();
       }
-      if(worldNoise(tx+91,ty-47)>.93) {
-        ctx.fillStyle="#1c110d";
+
+      // Scattered stones and chunks of broken ground.
+      const rock=worldNoise(tx+19.4,ty-31.7);
+      if(rock>.78) {
+        const rx=wx+12+worldNoise(tx+8,ty+4)*72;
+        const ry=wy+12+worldNoise(tx-6,ty+12)*72;
+        const rr=2.5+worldNoise(tx+55,ty-3)*5;
+        ctx.fillStyle="#19100c";
         ctx.beginPath();
-        ctx.arc(wx+48,wy+50,8+worldNoise(tx*2,ty*2)*8,0,Math.PI*2);
+        ctx.ellipse(rx,ry,rr,rr*.65,worldNoise(tx,ty)*Math.PI,0,Math.PI*2);
         ctx.fill();
-        ctx.strokeStyle="#2d1a13";
+        ctx.strokeStyle="#2b1912";
         ctx.stroke();
+      }
+
+      // Dry grass clusters. Each tile gets a different number and angle.
+      const grass=worldNoise(tx-52,ty+71);
+      if(grass>.56) {
+        const count=2+Math.floor(grass*5);
+        for(let i=0;i<count;i++) {
+          const gx=wx+8+worldNoise(tx+i*3.1,ty+i*7.7)*80;
+          const gy=wy+8+worldNoise(tx-i*5.2,ty+i*2.4)*80;
+          const h=5+worldNoise(tx+i*9,ty-i*4)*8;
+          ctx.strokeStyle=worldNoise(tx+i,ty-i)>.5?"#24160f":"#1d130e";
+          ctx.beginPath();
+          ctx.moveTo(gx,gy+2);
+          ctx.lineTo(gx-2,gy-h);
+          ctx.moveTo(gx,gy+2);
+          ctx.lineTo(gx+3,gy-h*.8);
+          ctx.stroke();
+        }
+      }
+
+      // Dead shrubs / small branches.
+      const shrub=worldNoise(tx+103,ty+37);
+      if(shrub>.90) {
+        const sx=wx+20+worldNoise(tx*2,ty)*56;
+        const sy=wy+22+worldNoise(tx,ty*2)*54;
+        ctx.strokeStyle="#281710";
+        ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(sx,sy+12);
+        ctx.lineTo(sx,sy-8);
+        ctx.moveTo(sx,sy-1);
+        ctx.lineTo(sx-9,sy-10);
+        ctx.moveTo(sx,sy+2);
+        ctx.lineTo(sx+8,sy-7);
+        ctx.stroke();
+      }
+
+      // Rare shallow pools / damp patches, kept irregular rather than circular.
+      const water=worldNoise(tx-77,ty+29);
+      if(water>.965) {
+        const px=wx+18+worldNoise(tx+14,ty-8)*60;
+        const py=wy+18+worldNoise(tx-11,ty+14)*60;
+        ctx.fillStyle="#120d0a";
+        ctx.beginPath();
+        ctx.moveTo(px-18,py+2);
+        ctx.quadraticCurveTo(px-7,py-12,px+8,py-7);
+        ctx.quadraticCurveTo(px+23,py-2,px+17,py+9);
+        ctx.quadraticCurveTo(px+1,py+16,px-18,py+2);
+        ctx.fill();
+        ctx.strokeStyle="#2b1a13";
+        ctx.stroke();
+      }
+
+      // Occasional larger landmark: a dead tree, ruin, or burnt stump.
+      const landmark=worldNoise(tx*1.17+230,ty*.91-180);
+      if(landmark>.985) {
+        const lx=wx+18+worldNoise(tx+91,ty-44)*60;
+        const ly=wy+18+worldNoise(tx-27,ty+63)*60;
+        ctx.strokeStyle="#24150f";
+        ctx.lineWidth=4;
+        ctx.beginPath();
+        ctx.moveTo(lx,ly+16);
+        ctx.lineTo(lx+worldNoise(tx,ty)*10-5,ly-15);
+        ctx.moveTo(lx,ly-3);
+        ctx.lineTo(lx-12,ly-13);
+        ctx.moveTo(lx+1,ly-7);
+        ctx.lineTo(lx+13,ly-17);
+        ctx.stroke();
+        ctx.lineWidth=1;
+      }
+
+      // A few worn paths naturally connect across neighboring tiles.
+      const pathNoise=worldNoise(tx*.42+5,ty*.42-8);
+      if(pathNoise>.73) {
+        ctx.fillStyle="#100a08";
+        ctx.globalAlpha=.32;
+        ctx.beginPath();
+        ctx.ellipse(wx+48,wy+48,34,8,worldNoise(tx+2,ty+4)*Math.PI,0,Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha=1;
       }
     }
   }
-  ctx.strokeStyle="#21130f";
-  ctx.lineWidth=1;
-  const grid=384;
-  const gx0=Math.floor((cameraX-W/2)/grid)*grid;
-  const gy0=Math.floor((cameraY-H/2)/grid)*grid;
-  for(let x=gx0;x<=cameraX+W/2+grid;x+=grid) {
-    ctx.beginPath();
-    ctx.moveTo(x,cameraY-H/2-50);
-    ctx.lineTo(x,cameraY+H/2+50);
-    ctx.stroke();
-  }
-  for(let y=gy0;y<=cameraY+H/2+grid;y+=grid) {
-    ctx.beginPath();
-    ctx.moveTo(cameraX-W/2-50,y);
-    ctx.lineTo(cameraX+W/2+50,y);
-    ctx.stroke();
-  }
+
+  // Subtle vignette-like regional variation around the camera. No visible
+  // world grid: the terrain should read as one continuous landscape.
+  const gradient=ctx.createRadialGradient(
+    cameraX,cameraY,80,
+    cameraX,cameraY,Math.max(W,H)*.7
+  );
+  gradient.addColorStop(0,"rgba(35,18,12,.025)");
+  gradient.addColorStop(1,"rgba(0,0,0,.20)");
+  ctx.fillStyle=gradient;
+  ctx.fillRect(cameraX-W/2-20,cameraY-H/2-20,W+40,H+40);
 }
 function getAimPoint() {
   if(autoAim) {
