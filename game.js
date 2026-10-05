@@ -511,6 +511,9 @@ function start(isMultiplayer=false) {
   timeLeft=600;
   hits=0;
   score=0;
+  killCombo=0;
+  comboTimer=0;
+  comboPeak=0;
   mana=100;
   maxMana=100;
   manaRegen=7;
@@ -1398,7 +1401,7 @@ function killEnemy(e) {
   const idx=enemies.indexOf(e);
   if(idx>=0)enemies.splice(idx,1);
   kills++;
-  score+=(10+Math.floor(e.max))*comboMult;
+  score+=Math.floor((10+Math.floor(e.max))*comboMult);
   gems.push( {
     x:e.x,y:e.y,v:e.xp,r:e.r>18?7:5
   });
