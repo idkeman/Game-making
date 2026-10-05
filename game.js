@@ -20,6 +20,7 @@ let boss=null,bossesDefeated=0,nextBossTime=480,bossWarningTimer=0,toastTimer=0,
 let sharedWorldVersion=0;
 let dying=false,deathTimer=0,deathDuration=3.2,deathSeed=0;
 let deathCinematicEnemies=[];
+let killCombo=0,comboTimer=0,comboPeak=0;
 const keys=new Set();
 const enemies=[];
 const bullets=[];
@@ -1368,10 +1369,21 @@ function updateEnemyBullets(dt) {
 function killEnemy(e) {
   if(e.dead)return;
   e.dead=true;
+  killCombo++;
+  comboTimer=2.75;
+  comboPeak=Math.max(comboPeak,killCombo);
+  const comboMult=1+Math.min(3,Math.floor(killCombo/8)*.25);
+  if(killCombo>=8&&killCombo%8===0) {
+    showToast(killCombo+" KILL CHAIN · x"+comboMult.toFixed(2));
+    shake=Math.max(shake,3+Math.min(8,killCombo/8));
+  }
+  if(killCombo>=4) {
+    burst(e.x,e.y,2,"combo");
+  }
   const idx=enemies.indexOf(e);
   if(idx>=0)enemies.splice(idx,1);
   kills++;
-  score+=10+Math.floor(e.max);
+  score+=(10+Math.floor(e.max))*comboMult;
   gems.push( {
     x:e.x,y:e.y,v:e.xp,r:e.r>18?7:5
   });
@@ -2000,7 +2012,32 @@ function draw() {
   ctx.restore();
   ctx.restore();
   drawVignette();
+  drawCombo();
   drawMinimap();
+}
+function drawCombo() {
+  if(killCombo<3||dying)return;
+  const intensity=Math.min(1,killCombo/20);
+  const pulse=1+Math.sin(runTime*9)*.025*intensity;
+  ctx.save();
+  ctx.translate(W-34,96);
+  ctx.scale(pulse,pulse);
+  ctx.textAlign="right";
+  ctx.globalAlpha=Math.min(1,comboTimer/.45);
+  ctx.fillStyle="#e2c8a5";
+  ctx.font="900 11px system-ui,sans-serif";
+  ctx.fillText("KILL CHAIN",0,0);
+  ctx.fillStyle="#d46a45";
+  ctx.font="950 25px system-ui,sans-serif";
+  ctx.shadowBlur=14;
+  ctx.shadowColor="#b94f35";
+  ctx.fillText("x"+killCombo,0,25);
+  const mult=1+Math.min(3,Math.floor(killCombo/8)*.25);
+  ctx.shadowBlur=0;
+  ctx.fillStyle="#a88d78";
+  ctx.font="800 9px system-ui,sans-serif";
+  ctx.fillText("SCORE x"+mult.toFixed(2),0,39);
+  ctx.restore();
 }
 function worldNoise(x,y) {
   const n=Math.sin(x*127.1+y*311.7)*43758.5453123;
@@ -2435,12 +2472,31 @@ function drawGem(g) {
   ctx.save();
   ctx.translate(g.x,g.y);
   const pulse=1+Math.sin(runTime*7+g.x*.02)*.12;
+  const drift=Math.sin(runTime*2.7+g.y*.01)*.7;
   ctx.scale(pulse,pulse);
-  ctx.shadowBlur=14;
+  ctx.rotate(Math.sin(runTime*1.8+g.x*.01)*.12);
+  ctx.shadowBlur=16;
   ctx.shadowColor="#d46a45";
+  ctx.fillStyle="#8f432f";
+  ctx.beginPath();
+  ctx.moveTo(0,-g.r*1.15+drift);
+  ctx.quadraticCurveTo(g.r*.85,-g.r*.45,g.r*.65,g.r*.7);
+  ctx.quadraticCurveTo(0,g.r*1.05,-g.r*.72,g.r*.55);
+  ctx.quadraticCurveTo(-g.r*.9,-g.r*.35,0,-g.r*1.15+drift);
+  ctx.fill();
   ctx.fillStyle="#d46a45";
-  ctx.rotate(Math.PI/4);
-  ctx.fillRect(-g.r*.65,-g.r*.65,g.r*1.3,g.r*1.3);
+  ctx.beginPath();
+  ctx.moveTo(-g.r*.18,-g.r*.72);
+  ctx.lineTo(g.r*.38,-g.r*.3);
+  ctx.lineTo(g.r*.18,g.r*.5);
+  ctx.lineTo(-g.r*.32,g.r*.2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#f0b079";
+  ctx.globalAlpha=.65;
+  ctx.beginPath();
+  ctx.ellipse(-g.r*.22,-g.r*.48,g.r*.16,g.r*.3,-.4,0,Math.PI*2);
+  ctx.fill();
   ctx.restore();
 }
 function drawEnemy(e) {
@@ -2740,40 +2796,95 @@ function drawBoss(e) {
   ctx.shadowColor=e.color;
   ctx.fillStyle=e.color;
   ctx.beginPath();
-  ctx.arc(0,0,e.r,0,Math.PI*2);
+  ctx.moveTo(0,-e.r*1.05);
+  ctx.quadraticCurveTo(e.r*.7,-e.r*.92,e.r*.92,-e.r*.25);
+  ctx.quadraticCurveTo(e.r*1.02,e.r*.55,e.r*.48,e.r*.92);
+  ctx.quadraticCurveTo(0,e.r*1.08,-e.r*.55,e.r*.86);
+  ctx.quadraticCurveTo(-e.r*1.02,e.r*.38,-e.r*.86,-e.r*.35);
+  ctx.quadraticCurveTo(-e.r*.55,-e.r*.95,0,-e.r*1.05);
   ctx.fill();
   ctx.shadowBlur=0;
+  ctx.fillStyle="#4a2119";
+  ctx.globalAlpha=.7;
+  ctx.beginPath();
+  ctx.ellipse(-e.r*.28,e.r*.18,e.r*.34,e.r*.55,-.3,0,Math.PI*2);
+  ctx.ellipse(e.r*.28,e.r*.1,e.r*.25,e.r*.48,.35,0,Math.PI*2);
+  ctx.fill();
   ctx.strokeStyle="#d09a78";
-  ctx.globalAlpha=.65;
+  ctx.globalAlpha=.7;
   ctx.lineWidth=3;
   ctx.beginPath();
-  ctx.arc(0,0,e.r*.7,0,Math.PI*2);
+  ctx.arc(0,0,e.r*.72,-.25,Math.PI*1.8);
   ctx.stroke();
   ctx.fillStyle="#1b0f0c";
   ctx.globalAlpha=1;
   ctx.beginPath();
-  ctx.arc(-e.r*.28,-e.r*.12,e.r*.12,0,Math.PI*2);
-  ctx.arc(e.r*.28,-e.r*.12,e.r*.12,0,Math.PI*2);
+  ctx.ellipse(-e.r*.28,-e.r*.12,e.r*.14,e.r*.1,-.2,0,Math.PI*2);
+  ctx.ellipse(e.r*.28,-e.r*.12,e.r*.14,e.r*.1,.2,0,Math.PI*2);
+  ctx.fill();
+  ctx.fillStyle="#e06a49";
+  ctx.beginPath();
+  ctx.arc(-e.r*.28,-e.r*.12,e.r*.055,0,Math.PI*2);
+  ctx.arc(e.r*.28,-e.r*.12,e.r*.055,0,Math.PI*2);
   ctx.fill();
   ctx.restore();
 }
 function drawBullet(b) {
   ctx.save();
+  const a=Math.atan2(b.vy,b.vx);
+  const speed=Math.hypot(b.vx,b.vy);
   ctx.translate(b.x,b.y);
-  ctx.rotate(Math.atan2(b.vy,b.vx));
+  ctx.rotate(a);
+  ctx.globalAlpha=.28;
+  ctx.fillStyle="#d46a45";
+  ctx.shadowBlur=18;
+  ctx.shadowColor="#d46a45";
+  ctx.beginPath();
+  ctx.ellipse(-Math.min(14,speed*.018),0,Math.min(15,speed*.024),Math.max(1.5,b.r*.65),0,0,Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.fillStyle="#f1d4aa";
   ctx.shadowBlur=12;
-  ctx.shadowColor="#e2c8a5";
-  ctx.fillStyle="#f0d6b0";
-  ctx.fillRect(-7,-Math.max(1,b.r*.45),14,Math.max(2,b.r*.9));
+  ctx.shadowColor="#e5a66f";
+  ctx.beginPath();
+  ctx.moveTo(8,0);
+  ctx.quadraticCurveTo(3,-b.r, -5,-b.r*.55);
+  ctx.lineTo(-7,b.r*.55);
+  ctx.quadraticCurveTo(3,b.r,8,0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#fff0cf";
+  ctx.globalAlpha=.72;
+  ctx.beginPath();
+  ctx.ellipse(2,-b.r*.22,2.5,Math.max(1,b.r*.18),-.3,0,Math.PI*2);
+  ctx.fill();
   ctx.restore();
 }
 function drawEnemyBullet(b) {
   ctx.save();
-  ctx.shadowBlur=12;
-  ctx.shadowColor="#e36d72";
+  const a=Math.atan2(b.vy,b.vx);
+  const wobble=Math.sin(runTime*11+b.x*.01+b.y*.02)*.8;
+  ctx.translate(b.x,b.y);
+  ctx.rotate(a+wobble*.025);
+  ctx.globalAlpha=.25;
+  ctx.fillStyle="#a53f32";
+  ctx.shadowBlur=16;
+  ctx.shadowColor="#c95746";
+  ctx.beginPath();
+  ctx.ellipse(-b.r*2.2,0,b.r*2.4,b.r*.75,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
   ctx.fillStyle="#d86b4c";
   ctx.beginPath();
-  ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+  ctx.moveTo(b.r*1.15,0);
+  ctx.quadraticCurveTo(b.r*.35,-b.r*1.05,-b.r*.75,-b.r*.55);
+  ctx.quadraticCurveTo(-b.r*1.05,0,-b.r*.75,b.r*.55);
+  ctx.quadraticCurveTo(b.r*.35,b.r*1.05,b.r*1.15,0);
+  ctx.fill();
+  ctx.fillStyle="#f09a62";
+  ctx.globalAlpha=.55;
+  ctx.beginPath();
+  ctx.arc(b.r*.25,-b.r*.2,b.r*.24,0,Math.PI*2);
   ctx.fill();
   ctx.restore();
 }
@@ -2810,6 +2921,11 @@ function drawParticles() {
     }
     else if(type==="crawlerDeath") {
       ctx.fillStyle="#bd493b";
+    }
+    else if(type==="combo") {
+      ctx.fillStyle="#f0b16f";
+      ctx.shadowBlur=10;
+      ctx.shadowColor="#d46a45";
     } else {
       ctx.fillStyle=type==="damage"?"#c95746":type==="boss"?"#b84b3f":"#d46a45";
     }
