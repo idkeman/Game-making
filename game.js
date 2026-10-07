@@ -467,7 +467,7 @@ const bossTypes=[
 }
 ];
 function resize() {
-  dpr=Math.min(window.devicePixelRatio||1,1.75);
+  dpr=Math.min(window.devicePixelRatio||1,1.5);
   W=Math.max(1,canvas.clientWidth); H=Math.max(1,canvas.clientHeight);
   canvas.width=Math.floor(W*dpr); canvas.height=Math.floor(H*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -797,15 +797,15 @@ function deployTurret(type="basic") {
   showToast(info.name+" DEPLOYED · "+(turretCooldown|0)+"s COOLDOWN");
 }
 function nearestTurretTarget(t) {
-  let best=null,bd=Infinity;
-  const candidates=boss?[boss,...enemies]:enemies;
-  for(const e of candidates) {
-    if(!e||e.dead)continue;
-    const d=Math.hypot(e.x-t.x,e.y-t.y);
-    if(d<bd&&d<turretVariantInfo(t.type).range) {
-      bd=d;
-      best=e
-    }
+  let best=null,bdSq=Infinity;
+  const range=turretVariantInfo(t.type).range;
+  forNearbyEnemies(t.x,t.y,range,e=>{
+    const dx=e.x-t.x,dy=e.y-t.y,d=dx*dx+dy*dy;
+    if(d<bdSq){bdSq=d;best=e;}
+  });
+  if(boss&&!boss.dead){
+    const dx=boss.x-t.x,dy=boss.y-t.y,d=dx*dx+dy*dy;
+    if(d<bdSq&&d<range*range)best=boss;
   }
   return best;
 }
@@ -1265,76 +1265,58 @@ function spawnBoss() {
 
 function syncSharedWorld(snapshot) {
   if(!multiplayerMode||window.NightfallMP.isHost||!snapshot)return;
-  sharedWorldVersion=Number(snapshot.version)||sharedWorldVersion;
   const incoming=Array.isArray(snapshot.enemies)?snapshot.enemies:[];
-  const byId=new Map(enemies.map(e=>[String(e.id),e]));
+  const byId=new Map();
+  for(const e of enemies)byId.set(String(e.id),e);
   const seen=new Set();
-
-  for(const data of incoming) {
-    const key=String(data.id);
-    seen.add(key);
+  for(const data of incoming){
+    const key=String(data.id);seen.add(key);
     let enemy=byId.get(key);
-    if(!enemy) {
-      enemy={...data,dead:false};
-      enemies.push(enemy);
-      continue;
-    }
-    Object.assign(enemy,data,{dead:false});
+    if(!enemy){enemy={...data,dead:false};enemies.push(enemy);}
+    else Object.assign(enemy,data,{dead:false});
   }
-
-  for(let i=enemies.length-1;i>=0;i--) {
+  for(let i=enemies.length-1;i>=0;i--){
     const enemy=enemies[i];
-    if(!seen.has(String(enemy.id))) {
-      if(Math.hypot(enemy.x-player.x,enemy.y-player.y)<1100) {
-        burst(enemy.x,enemy.y,5,"hit");
-      }
-      enemies.splice(i,1);
+    if(!seen.has(String(enemy.id))){
+      if(Math.hypot(enemy.x-player.x,enemy.y-player.y)<1100)burst(enemy.x,enemy.y,3,"hit");
+      removeFromArray(enemies,i);
     }
   }
-
-  if(snapshot.boss) {
-    if(!boss||String(boss.id)!==String(snapshot.boss.id)) {
-      boss={...snapshot.boss,dead:false};
-      showToast(snapshot.boss.name+" HAS AWAKENED");
-    } else {
-      Object.assign(boss,snapshot.boss,{dead:false});
-    }
-  } else {
-    boss=null;
-  }
+  rebuildEnemyGrid();
+  if(snapshot.boss){
+    if(!boss||String(boss.id)!==String(snapshot.boss.id)){boss={...snapshot.boss,dead:false};showToast(snapshot.boss.name+" HAS AWAKENED");}
+    else Object.assign(boss,snapshot.boss,{dead:false});
+  } else boss=null;
 }
 
 function applySharedMagicAbility(x,y,radius,damage,bossDamage) {
   if(!multiplayerMode||!window.NightfallMP.isHost)return;
-  for(const e of [...enemies]) {
-    if(e.dead)continue;
-    const d=Math.hypot(e.x-x,e.y-y);
-    if(d<=radius+e.r) {
-      e.hp-=damage*(1-d/(radius+e.r)*.45);
-      e.flash=.2;
-      if(e.hp<=0)killEnemy(e);
-    }
-  }
-  if(boss&&!boss.dead&&Math.hypot(boss.x-x,boss.y-y)<=radius+boss.r) {
-    boss.hp-=bossDamage;
-    boss.flash=.2;
-    if(boss.hp<=0)defeatBoss();
+  forNearbyEnemies(x,y,radius+30,e=>{
+    const dx=e.x-x,dy=e.y-y,d=Math.hypot(dx,dy),reach=radius+e.r;
+    if(d<=reach){e.hp-=damage*(1-d/reach*.45);e.flash=.2;if(e.hp<=0)killEnemy(e);}
+  });
+  if(boss&&!boss.dead){
+    const dx=boss.x-x,dy=boss.y-y;
+    if(dx*dx+dy*dy<=(radius+boss.r)*(radius+boss.r)){boss.hp-=bossDamage;boss.flash=.2;if(boss.hp<=0)defeatBoss();}
   }
 }
 
 function applySharedEnemyDamage(id,damage) {
   if(!multiplayerMode||!window.NightfallMP.isHost)return;
   const amount=Math.max(0,Math.min(1000,Number(damage)||0));
-  const enemy=enemies.find(e=>String(e.id)===String(id));
-  if(enemy&&!enemy.dead) {
-    enemy.hp-=amount;
-    enemy.flash=.08;
-    if(enemy.hp<=0)killEnemy(enemy);
-    return;
+  const numericId=Number(id);
+  let enemy=null;
+  for(const e of enemies){
+    if(Number(e.id)===numericId||String(e.id)===String(id)){enemy=e;break;}
   }
-  if(boss&&String(boss.id)===String(id)&&!boss.dead) {
+  if(enemy&&!enemy.dead){
+    enemy.hp-=amount;
+    enemy.flash=.12;
+    if(enemy.hp<=0)killEnemy(enemy);
+  }
+  else if(boss&&String(boss.id)===String(id)){
     boss.hp-=amount;
-    boss.flash=.08;
+    boss.flash=.12;
     if(boss.hp<=0)defeatBoss();
   }
 }
@@ -2212,7 +2194,7 @@ function drawEnemy(e) {
   ctx.rotate(facing);
   const t=e.animSeed||0;
   const pulse=Math.sin(t*5)*.04;
-  ctx.shadowBlur=12;
+  ctx.shadowBlur=e.r>=18?6:0;
   ctx.shadowColor=e.color;
   ctx.fillStyle=e.color;
   ctx.save();
@@ -2544,8 +2526,8 @@ function drawBullet(b) {
   ctx.rotate(a);
   ctx.globalAlpha=.28;
   ctx.fillStyle="#d46a45";
-  ctx.shadowBlur=18;
-  ctx.shadowColor="#d46a45";
+  ctx.shadowBlur=0;
+  ctx.shadowColor="#0000";
   ctx.beginPath();
   ctx.ellipse(-Math.min(14,speed*.018),0,Math.min(15,speed*.024),Math.max(1.5,b.r*.65),0,0,Math.PI*2);
   ctx.fill();
@@ -2575,8 +2557,8 @@ function drawEnemyBullet(b) {
   ctx.rotate(a+wobble*.025);
   ctx.globalAlpha=.25;
   ctx.fillStyle="#a53f32";
-  ctx.shadowBlur=16;
-  ctx.shadowColor="#c95746";
+  ctx.shadowBlur=0;
+  ctx.shadowColor="#0000";
   ctx.beginPath();
   ctx.ellipse(-b.r*2.2,0,b.r*2.4,b.r*.75,0,0,Math.PI*2);
   ctx.fill();
@@ -2603,8 +2585,8 @@ function drawParticles() {
     const type=p.type;
     if(type==="explosion") {
       ctx.fillStyle=p.life>.45?"#ffb15c":"#d84b35";
-      ctx.shadowBlur=14;
-      ctx.shadowColor="#e0643f";
+      ctx.shadowBlur=0;
+      ctx.shadowColor="#0000";
     }
     else if(type==="wispDeath") {
       ctx.fillStyle="#c98b9b";
@@ -2632,8 +2614,8 @@ function drawParticles() {
     }
     else if(type==="combo") {
       ctx.fillStyle="#f0b16f";
-      ctx.shadowBlur=10;
-      ctx.shadowColor="#d46a45";
+      ctx.shadowBlur=0;
+      ctx.shadowColor="#0000";
     } else {
       ctx.fillStyle=type==="damage"?"#c95746":type==="boss"?"#b84b3f":"#d46a45";
     }
