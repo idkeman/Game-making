@@ -30,7 +30,9 @@ async function submit(){err("");const email=$("authEmail").value.trim(),pass=$("
 if(!email||!pass){err("Enter your email and password.");return}
 if(signup){const u=$("authUsername").value.trim();if(!u){err("Enter a username.");return}if(pass.length<6){err("Password must be at least 6 characters.");return}
 const {data,error}=await client.auth.signUp({email,password:pass,options:{data:{username:u},emailRedirectTo:location.href.split("#")[0]}});
-if(error){err(error.message);return}if(data.session){await refresh();close()}else err("Account created. Check your email to verify it, then log in.");
+if(error){err(error.message);return}
+if(!data.session){const {data:loginData,error:loginError}=await client.auth.signInWithPassword({email,password:pass});if(loginError){err(/email not confirmed/i.test(loginError.message||"")?"Supabase is still requiring email confirmation. Check the Email provider's Confirm email setting and any phone-confirmation requirement.":"Account created, but automatic sign-in failed: "+loginError.message);return}if(!loginData.session){err("Account created, but Supabase did not return a sign-in session. Try logging in once.");return}}
+await refresh();if(user)close();else err("Sign-in completed, but the account could not be loaded. Reload the page and try again.");
 }else{const {error}=await client.auth.signInWithPassword({email,password:pass});if(error){err(error.message);return}await refresh();close()}}
 async function save(){const u=$("newUsername").value.trim();$("accountError").textContent="";
 if(!u){$("accountError").textContent="Enter a username.";return}
