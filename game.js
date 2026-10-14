@@ -320,10 +320,11 @@ const characters=[
 ];
 let workshopActive=null;
 try{workshopActive=JSON.parse(localStorage.getItem("nightfall_active_workshop_v1")||"null");}catch{}
-let workshopMap=workshopActive?.kind==="map"?workshopActive.content:null;
-let workshopSprite=workshopActive?.kind==="sprite"?workshopActive.content:null;
-if(workshopActive?.kind==="character"&&workshopActive.content){
-  const c=workshopActive.content;
+let workshopMap=workshopActive?.assets?.map?.content||(workshopActive?.kind==="map"?workshopActive.content:null);
+let workshopSprite=workshopActive?.assets?.sprite?.content||(workshopActive?.kind==="sprite"?workshopActive.content:null);
+const workshopCharacter=workshopActive?.assets?.character?.content||(workshopActive?.kind==="character"?workshopActive.content:null);
+if(workshopCharacter){
+  const c=workshopCharacter;
   const id="workshop-"+String(workshopActive.title||c.name||"custom").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,32);
   if(!characters.some(x=>x.id===id))characters.push({id,name:String(c.name||workshopActive.title||"CUSTOM SURVIVOR").slice(0,40).toUpperCase(),weapon:String(c.weapon||"Custom Weapon").slice(0,40),weaponKind:"rifle",icon:"✦",maxHits:Math.max(1,Math.min(10,Number(c.maxHits)||3)),speed:Math.max(80,Math.min(420,Number(c.speed)||220)),damage:Math.max(1,Math.min(150,Number(c.damage)||18)),rate:Math.max(.025,Math.min(2,Number(c.rate)||.46)),range:Math.max(100,Math.min(1000,Number(c.range)||410)),shots:Math.max(1,Math.min(12,Number(c.shots)||1)),spread:.08,projectileSpeed:650,pierce:Math.max(0,Math.min(12,Number(c.pierce)||0)),bulletSize:1,desc:String(c.description||"A custom Workshop survivor."),gimmick:"Workshop creation",color:/^#[0-9a-f]{6}$/i.test(c.color||"")?c.color:"#d06b36",unlockTime:0,unlockEssence:0,cost:0,workshopCustom:true});
 }
