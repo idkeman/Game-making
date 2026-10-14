@@ -334,6 +334,12 @@ function workshopBlocked(x,y){
   const r=12,points=[[x-r,y],[x+r,y],[x,y-r],[x,y+r]];
   return points.some(p=>["rock","wall"].includes(workshopTileAt(p[0],p[1])));
 }
+function workshopPlayerSpawnPoint(){
+  if(!workshopMap||!Array.isArray(workshopMap.tiles))return null;
+  const tw=96,mw=Math.max(12,Math.min(40,Number(workshopMap.width)||24)),mh=Math.max(8,Math.min(28,Number(workshopMap.height)||16));
+  for(let i=0;i<Math.min(workshopMap.tiles.length,mw*mh);i++)if(workshopMap.tiles[i]==="spawn"){const tx=i%mw,ty=Math.floor(i/mw);return{x:-mw*tw/2+tx*tw+tw/2,y:-mh*tw/2+ty*tw+tw/2};}
+  return null;
+}
 function workshopEnemySpawnPoint(){
   if(!workshopMap||!Array.isArray(workshopMap.tiles))return null;
   const tw=96,mw=Math.max(12,Math.min(40,Number(workshopMap.width)||24)),mh=Math.max(8,Math.min(28,Number(workshopMap.height)||16)),spots=[];
@@ -487,8 +493,11 @@ function applyCharacter() {
     weaponName:c.weapon,color:c.color,gimmick:c.id,gimmickCooldown:0,shotCount:0,heat:0,overheated:0,
     dashPower:c.id==="ironclad"?145:170,dashCd:c.id==="gunslinger"?2.1:2.4,
     magnet:75,regen:0,armor:0,crit:0,execute:0,_regen:0,
-    mana:100,maxMana:100,manaRegen:7,spellPower:1,magicCooldown:0
+    mana:100,maxMana:100,manaRegen:7,spellPower:1,magicCooldown:0,
+    workshopAbility:c.workshopCustom?(workshopCharacter?.ability||"none"):"none"
   });
+  const workshopStart=workshopPlayerSpawnPoint();
+  if(workshopStart){player.x=workshopStart.x;player.y=workshopStart.y;cameraX=player.x;cameraY=player.y;}
 }
 const bossTypes=[
 {
@@ -530,7 +539,7 @@ addEventListener("keydown",e=> {
     if(running&&!paused&&!isUpgradeOpen())tryDash();
   }
   if(key==="f"&&running&&!paused&&!isUpgradeOpen())toggleAutoAim();
-  if(key==="e"&&running&&!paused&&!isUpgradeOpen())castMagicAbility();
+  if(key==="e"&&running&&!paused&&!isUpgradeOpen()){if(player.workshopAbility&&player.workshopAbility!=="none")castWorkshopAbility();else castMagicAbility();}
   if(key==="t"&&running&&!paused&&!isUpgradeOpen())deployTurret("basic");
   if(key==="1"&&running&&!paused&&!isUpgradeOpen())deployTurret("flamethrower");
   if(key==="2"&&running&&!paused&&!isUpgradeOpen())deployTurret("minigun");
@@ -1226,7 +1235,17 @@ function fire(autoTarget=null) {
     }
   }
 }
+function castWorkshopAbility(){
+  const ability=player.workshopAbility;if(!ability||ability==="none")return castMagicAbility();if(magicCooldown>0)return;
+  magicCooldown=ability==="dash"?3:ability==="heal"?12:ability==="turret"?10:8;
+  if(ability==="dash"){tryDash();showToast("ENHANCED DASH");return;}
+  if(ability==="heal"){if(hits>0){hits--;ui();showToast("SOUL HARVEST · HIT RESTORED");}else showToast("ALREADY AT FULL HEALTH");}
+  else if(ability==="turret"){const a=Math.random()*Math.PI*2,d=42;turrets.push({id:"workshop-"+Date.now(),x:player.x+Math.cos(a)*d,y:player.y+Math.sin(a)*d,r:14,level:1,kills:0,killNeed:999,type:"basic",rate:.45,shotTimer:.1,flash:0,spin:0});showToast("WORKSHOP TURRET DEPLOYED");}
+  else {const radius=ability==="aura"?220:ability==="burst"?240:190,damage=player.damage*(ability==="burst"?5:ability==="nova"?4:2);burst(player.x,player.y,42,ability==="burst"?"explosion":"magicNova");addRing(player.x,player.y,12,radius,"magicNova");shake=Math.max(shake,7);for(const e of [...enemies]){if(e.dead)continue;if(Math.hypot(e.x-player.x,e.y-player.y)<=radius+e.r){e.hp-=damage;e.flash=.2;burst(e.x,e.y,6,"magic");if(e.hp<=0)killEnemy(e);}}if(boss&&!boss.dead&&Math.hypot(boss.x-player.x,boss.y-player.y)<=radius+boss.r){boss.hp-=damage*2;if(boss.hp<=0)defeatBoss();}if(ability==="aura"){auraRadius=radius;auraTimer=4;}}
+  showToast("WORKSHOP ABILITY · E");
+}
 function castMagicAbility() {
+  if(player.workshopAbility&&player.workshopAbility!=="none")return castWorkshopAbility();
   if(player.gimmick!=="wizard"||magicCooldown>0)return;
   const cost=35;
   if(mana<cost) {
@@ -2128,9 +2147,9 @@ function drawPlayer() {
     ctx.fill();
   }
   if(player.r>=12)drawOrganicTexture(17+(player.x||0)*.001,18,player.color||"#d49a78","#3a2018");
-  if(workshopSprite&&Array.isArray(workshopSprite.pixels)&&workshopSprite.pixels.length===workshopSprite.width*workshopSprite.height){
-    const n=Math.max(1,Math.min(32,Number(workshopSprite.width)||16)),scale=30/n,offset=-n*scale/2;
-    for(let py=0;py<n;py++)for(let px=0;px<n;px++){const col=workshopSprite.pixels[py*n+px];if(!/^#[0-9a-f]{6}$/i.test(col||""))continue;ctx.fillStyle=col;ctx.fillRect(offset+px*scale,offset+py*scale,scale,scale);}
+  if(workshopSprite){
+    const n=Math.max(1,Math.min(32,Number(workshopSprite.width)||16)),frames=Array.isArray(workshopSprite.frames)&&workshopSprite.frames.length?workshopSprite.frames:null,pixels=frames?frames[Math.floor(runTime*(Number(workshopSprite.fps)||8))%frames.length]:workshopSprite.pixels;
+    if(Array.isArray(pixels)&&pixels.length===n*n){const scale=44/n,offset=-n*scale/2;ctx.fillStyle="#0000";ctx.fillRect(-24,-25,48,52);for(let py=0;py<n;py++)for(let px=0;px<n;px++){const col=pixels[py*n+px];if(!/^#[0-9a-f]{6}$/i.test(col||""))continue;ctx.fillStyle=col;ctx.fillRect(offset+px*scale,offset+py*scale,scale,scale);}}
   }
   ctx.restore();
   ctx.shadowBlur=10;
