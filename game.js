@@ -334,6 +334,16 @@ function workshopBlocked(x,y){
   const r=12,points=[[x-r,y],[x+r,y],[x,y-r],[x,y+r]];
   return points.some(p=>["rock","wall"].includes(workshopTileAt(p[0],p[1])));
 }
+function workshopEnemySpawnPoint(){
+  if(!workshopMap||!Array.isArray(workshopMap.tiles))return null;
+  const tw=96,mw=Math.max(12,Math.min(40,Number(workshopMap.width)||24)),mh=Math.max(8,Math.min(28,Number(workshopMap.height)||16)),spots=[];
+  for(let i=0;i<Math.min(workshopMap.tiles.length,mw*mh);i++)if(workshopMap.tiles[i]==="enemy"){
+    const tx=i%mw,ty=Math.floor(i/mw);
+    spots.push({x:-mw*tw/2+tx*tw+tw/2,y:-mh*tw/2+ty*tw+tw/2});
+  }
+  if(!spots.length)return null;
+  return spots[Math.floor(Math.random()*spots.length)];
+}
 const workshopCharacter=workshopActive?.assets?.character?.content||(workshopActive?.kind==="character"?workshopActive.content:null);
 if(workshopCharacter){
   const c=workshopCharacter;
@@ -1255,8 +1265,9 @@ function spawnEnemy() {
   if(multiplayerMode&&!window.NightfallMP.isHost)return;
   const angle=Math.random()*Math.PI*2;
   const distance=Math.max(W,H)*.65+180+Math.random()*280;
-  let x=player.x+Math.cos(angle)*distance;
-  let y=player.y+Math.sin(angle)*distance;
+  const workshopSpawn=workshopEnemySpawnPoint();
+  let x=workshopSpawn?workshopSpawn.x:player.x+Math.cos(angle)*distance;
+  let y=workshopSpawn?workshopSpawn.y:player.y+Math.sin(angle)*distance;
   const elapsed=600-timeLeft;
   const available=elapsed<35?4:elapsed<90?6:elapsed<150?8:9;
   const type=enemyTypes[Math.floor(Math.random()*available)];
