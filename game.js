@@ -318,6 +318,15 @@ const characters=[
   id:"wizard",name:"THE WIZARD",weapon:"Arcane Staff",weaponKind:"magic",icon:"✦",maxHits:3,speed:210,damage:32,rate:.62,range:520,shots:1,spread:.02,projectileSpeed:540,pierce:1,bulletSize:1.25,desc:"A pure spellcaster. Every attack, upgrade, and ability is magical.",gimmick:"Spells consume mana. Press E to cast Arcane Nova.",color:"#d49a6a",unlockTime:900,unlockEssence:2800,cost:1100
 }
 ];
+let workshopActive=null;
+try{workshopActive=JSON.parse(localStorage.getItem("nightfall_active_workshop_v1")||"null");}catch{}
+let workshopMap=workshopActive?.kind==="map"?workshopActive.content:null;
+let workshopSprite=workshopActive?.kind==="sprite"?workshopActive.content:null;
+if(workshopActive?.kind==="character"&&workshopActive.content){
+  const c=workshopActive.content;
+  const id="workshop-"+String(workshopActive.title||c.name||"custom").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,32);
+  if(!characters.some(x=>x.id===id))characters.push({id,name:String(c.name||workshopActive.title||"CUSTOM SURVIVOR").slice(0,40).toUpperCase(),weapon:String(c.weapon||"Custom Weapon").slice(0,40),weaponKind:"rifle",icon:"✦",maxHits:Math.max(1,Math.min(10,Number(c.maxHits)||3)),speed:Math.max(80,Math.min(420,Number(c.speed)||220)),damage:Math.max(1,Math.min(150,Number(c.damage)||18)),rate:Math.max(.025,Math.min(2,Number(c.rate)||.46)),range:Math.max(100,Math.min(1000,Number(c.range)||410)),shots:Math.max(1,Math.min(12,Number(c.shots)||1)),spread:.08,projectileSpeed:650,pierce:Math.max(0,Math.min(12,Number(c.pierce)||0)),bulletSize:1,desc:String(c.description||"A custom Workshop survivor."),gimmick:"Workshop creation",color:/^#[0-9a-f]{6}$/i.test(c.color||"")?c.color:"#d06b36",unlockTime:0,unlockEssence:0,cost:0,workshopCustom:true});
+}
 let selectedCharacterId="warden";
 let activeCharacter=characters[0];
 let meta= {
@@ -1841,6 +1850,20 @@ function drawBackground() {
   const cacheW=Math.ceil(W/tile)*tile+4*tile,cacheH=Math.ceil(H/tile)*tile+4*tile;
   if(!bgCacheCanvas||cacheX!==bgCacheX||cacheY!==bgCacheY||cacheW!==bgCacheW||cacheH!==bgCacheH){bgCacheX=cacheX;bgCacheY=cacheY;renderBackgroundCache(cacheX,cacheY,cacheW,cacheH);}
   ctx.drawImage(bgCacheCanvas,Math.floor(bgCacheX),Math.floor(bgCacheY),bgCacheW,bgCacheH);
+  if(workshopMap&&Array.isArray(workshopMap.tiles)){
+    const tw=96,mw=Math.max(12,Math.min(40,Number(workshopMap.width)||24)),mh=Math.max(8,Math.min(28,Number(workshopMap.height)||16));
+    const left=-mw*tw/2,top=-mh*tw/2,colors={ash:"#0b0807",cinder:"#24130e",rock:"#6b5a4b",water:"#35576a",hazard:"#b44b32",grass:"#394c37",wall:"#c6a27b",spawn:"#f0d7b5",enemy:"#d06b36",path:"#76513b"};
+    const x0=Math.max(0,Math.floor((cameraX-W/2-left)/tw)),x1=Math.min(mw-1,Math.floor((cameraX+W/2-left)/tw)),y0=Math.max(0,Math.floor((cameraY-H/2-top)/tw)),y1=Math.min(mh-1,Math.floor((cameraY+H/2-top)/tw));
+    for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++){
+      const kind=workshopMap.tiles[ty*mw+tx]||"cinder",x=left+tx*tw,y=top+ty*tw;
+      ctx.fillStyle=colors[kind]||colors.cinder;ctx.fillRect(x,y,tw,tw);
+      if(kind==="rock"||kind==="wall"){ctx.fillStyle=kind==="rock"?"#8a7765":"#d5b38c";ctx.fillRect(x+15,y+18,tw-30,tw-36);}
+      else if(kind==="water"){ctx.strokeStyle="#62849a";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+12,y+50);ctx.lineTo(x+tw-12,y+38);ctx.moveTo(x+20,y+72);ctx.lineTo(x+tw-22,y+60);ctx.stroke();}
+      else if(kind==="hazard"){ctx.fillStyle="#ef9560";ctx.globalAlpha=.6;ctx.beginPath();ctx.arc(x+tw/2,y+tw/2,18+Math.sin(runTime*3)*4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;}
+      else if(kind==="grass"){ctx.strokeStyle="#7c7d64";ctx.beginPath();ctx.moveTo(x+20,y+70);ctx.lineTo(x+32,y+35);ctx.moveTo(x+48,y+72);ctx.lineTo(x+61,y+44);ctx.stroke();}
+      else if(kind==="spawn"||kind==="enemy"){ctx.fillStyle=kind==="spawn"?"#f0d7b5":"#d06b36";ctx.beginPath();ctx.arc(x+tw/2,y+tw/2,12,0,Math.PI*2);ctx.fill();}
+    }
+  }
 }
 function getAimPoint() {
   if(autoAim) {
@@ -2071,6 +2094,10 @@ function drawPlayer() {
     ctx.fill();
   }
   if(player.r>=12)drawOrganicTexture(17+(player.x||0)*.001,18,player.color||"#d49a78","#3a2018");
+  if(workshopSprite&&Array.isArray(workshopSprite.pixels)&&workshopSprite.pixels.length===workshopSprite.width*workshopSprite.height){
+    const n=Math.max(1,Math.min(32,Number(workshopSprite.width)||16)),scale=30/n,offset=-n*scale/2;
+    for(let py=0;py<n;py++)for(let px=0;px<n;px++){const col=workshopSprite.pixels[py*n+px];if(!/^#[0-9a-f]{6}$/i.test(col||""))continue;ctx.fillStyle=col;ctx.fillRect(offset+px*scale,offset+py*scale,scale,scale);}
+  }
   ctx.restore();
   ctx.shadowBlur=10;
   ctx.shadowColor="#b94f35";
