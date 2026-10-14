@@ -322,6 +322,18 @@ let workshopActive=null;
 try{workshopActive=JSON.parse(localStorage.getItem("nightfall_active_workshop_v1")||"null");}catch{}
 let workshopMap=workshopActive?.assets?.map?.content||(workshopActive?.kind==="map"?workshopActive.content:null);
 let workshopSprite=workshopActive?.assets?.sprite?.content||(workshopActive?.kind==="sprite"?workshopActive.content:null);
+let workshopHazardTimer=0;
+function workshopTileAt(x,y){
+  if(!workshopMap||!Array.isArray(workshopMap.tiles))return null;
+  const tw=96,mw=Math.max(12,Math.min(40,Number(workshopMap.width)||24)),mh=Math.max(8,Math.min(28,Number(workshopMap.height)||16));
+  const tx=Math.floor((x+mw*tw/2)/tw),ty=Math.floor((y+mh*tw/2)/tw);
+  if(tx<0||ty<0||tx>=mw||ty>=mh)return null;
+  return workshopMap.tiles[ty*mw+tx]||"cinder";
+}
+function workshopBlocked(x,y){
+  const r=12,points=[[x-r,y],[x+r,y],[x,y-r],[x,y+r]];
+  return points.some(p=>["rock","wall"].includes(workshopTileAt(p[0],p[1])));
+}
 const workshopCharacter=workshopActive?.assets?.character?.content||(workshopActive?.kind==="character"?workshopActive.content:null);
 if(workshopCharacter){
   const c=workshopCharacter;
@@ -1044,9 +1056,19 @@ function move(dt) {
   let x=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0);
   let y=(keys.has("s")||keys.has("arrowdown")?1:0)-(keys.has("w")||keys.has("arrowup")?1:0);
   const n=Math.hypot(x,y)||1;
+  workshopHazardTimer=Math.max(0,workshopHazardTimer-dt);
   if(x||y) {
-    player.x+=x/n*player.speed*dt;
-    player.y+=y/n*player.speed*dt;
+    const tile=workshopTileAt(player.x,player.y);
+    const terrainSpeed=tile==="water"?.48:tile==="grass"?1.08:1;
+    const nx=player.x+x/n*player.speed*dt*terrainSpeed;
+    const ny=player.y+y/n*player.speed*dt*terrainSpeed;
+    if(!workshopBlocked(nx,player.y))player.x=nx;
+    if(!workshopBlocked(player.x,ny))player.y=ny;
+  }
+  if(workshopTileAt(player.x,player.y)==="hazard"&&workshopHazardTimer<=0){
+    workshopHazardTimer=1.0;
+    damagePlayer(1);
+    burst(player.x,player.y,5,"damage");
   }
 }
 function tryDash() {
