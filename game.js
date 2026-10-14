@@ -652,6 +652,8 @@ function start(isMultiplayer=false) {
   });
   maxHits=3;
   applyCharacter();
+  const workshopStart=workshopPlayerSpawnPoint();
+  if(workshopStart){player.x=workshopStart.x;player.y=workshopStart.y;}
   resetWorld();
   running=true;
   paused=true;
