@@ -137,6 +137,12 @@ if(!window.supabase) {
       if(!payload||!mpHost)return;
       if(typeof applySharedEnemyDamage==="function")applySharedEnemyDamage(payload.id,payload.damage);
     }).on("broadcast", {
+      event:"essence-award"
+    },({payload})=>{
+      if(!payload||mpHost||!multiplayerMode||typeof collectXp!=="function")return;
+      const value=Math.max(0,Math.min(100000,Number(payload.value)||0));
+      if(value>0)collectXp(value);
+    }).on("broadcast", {
       event:"magic-ability"
     },( {
       payload
@@ -392,6 +398,14 @@ if(!window.supabase) {
     }
   }
 
+  function mpAwardEssence(value) {
+    if(!mpConnected||!mpChannel||!mpHost)return;
+    const amount=Math.max(0,Math.min(100000,Number(value)||0));
+    if(!amount)return;
+    if(typeof collectXp==="function")collectXp(amount);
+    mpChannel.send({type:"broadcast",event:"essence-award",payload:{value:amount}});
+  }
+
   function mpReportMagicAbility(x,y,radius,damage,bossDamage) {
     if(!mpConnected||!mpChannel||mpHost)return;
     mpChannel.send({
@@ -509,7 +523,7 @@ if(!window.supabase) {
     }
   });
   window.NightfallMP= {
-    host:mpHostRoom,join:mpJoinRoom,start:mpStartGame,leave:mpLeave,tick:mpTick,reportEnemyHit:mpReportEnemyHit,reportMagicAbility:mpReportMagicAbility,drawRemote:mpDrawRemote,getRemotePlayers:()=>Array.from(remotePlayers.values()),get enabled() {
+    host:mpHostRoom,join:mpJoinRoom,start:mpStartGame,leave:mpLeave,tick:mpTick,awardEssence:mpAwardEssence,reportEnemyHit:mpReportEnemyHit,reportMagicAbility:mpReportMagicAbility,drawRemote:mpDrawRemote,getRemotePlayers:()=>Array.from(remotePlayers.values()),get enabled() {
       return mpConnected
     },get room() {
       return mpRoom
