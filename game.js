@@ -1449,7 +1449,7 @@ function killEnemy(e) {
   if(killCombo>=4)burst(e.x,e.y,2,"combo");
   const idx=enemies.indexOf(e); if(idx>=0)removeFromArray(enemies,idx);
   kills++; score+=Math.floor((10+Math.floor(e.max))*comboMult);
-  if(gems.length<700)gems.push({x:e.x,y:e.y,v:e.xp,r:e.r>18?7:5});
+  if(multiplayerMode){if(window.NightfallMP?.isHost)window.NightfallMP.awardEssence(e.xp);}else if(gems.length<700)gems.push({x:e.x,y:e.y,v:e.xp,r:e.r>18?7:5});
   if((player.gimmick==="reaper"||player.gimmick==="revenant")&&Math.random()<.18&&hits>0){
     hits--;burst(e.x,e.y,10,"soul");showToast(player.gimmick==="reaper"?"SOUL HARVEST · HIT RESTORED":"BLOOD HARVEST · HIT RESTORED");
   }
@@ -1477,7 +1477,7 @@ function defeatBoss() {
   kills++;
   bossesDefeated++;
   score+=500+Math.floor(boss.max);
-  for(let i=0;i<12;i++)gems.push( {
+  if(multiplayerMode){if(window.NightfallMP?.isHost)window.NightfallMP.awardEssence(boss.xp);}else for(let i=0;i<12;i++)gems.push( {
     x:boss.x+(Math.random()-.5)*40,y:boss.y+(Math.random()-.5)*40,v:boss.xp/6,r:7
   });
   burst(boss.x,boss.y,70,"boss");
